@@ -1,0 +1,39 @@
+FROM llama3.2:3b
+
+PARAMETER temperature 0
+PARAMETER num_ctx 8192
+
+# Unlike the stock template, tools are optional even when schemas are present.
+TEMPLATE """
+<|start_header_id|>system<|end_header_id|>
+{{ .System }}
+{{ if .Tools }}
+You have optional functions available:
+{{ range .Tools }}
+{{ . }}
+{{ end }}
+If a function is necessary for the user's request, respond with
+{"name": "function_name", "parameters": {"argument_name": "value"}}.
+If no function is needed, answer the user normally in plain text.
+Never use a function for greetings. Never invent arguments.
+After a function result, answer the original question using that result.
+{{ end }}
+<|eot_id|>
+{{ range .Messages }}
+{{ if eq .Role "tool" }}
+<|start_header_id|>ipython<|end_header_id|>
+{{ .Content }}
+{{ else }}
+<|start_header_id|>{{ .Role }}<|end_header_id|>
+{{ if .ToolCalls }}
+{{ range .ToolCalls }}
+{"name": "{{ .Function.Name }}", "parameters": {{ .Function.Arguments }}}
+{{ end }}
+{{ else }}
+{{ .Content }}
+{{ end }}
+{{ end }}
+<|eot_id|>
+{{ end }}
+<|start_header_id|>assistant<|end_header_id|>
+"""
