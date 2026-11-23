@@ -2,10 +2,10 @@
 
 Two small .NET 10 console projects, using the official MCP C# SDK:
 
-- **McpServer** provides `add_numbers`, `get_store_hours`, and `search_web`.
+- **McpServer** provides `add_numbers`, `get_store_hours`, `search_web`, and `find_northwind_products`.
 - **OllamaChat** is the host application. It contains an MCP client and talks to your local Ollama model.
 
-No API key, cloud LLM, database, or frontend is needed.
+No API key, cloud LLM, or frontend is needed. A database is only needed for the Northwind tool.
 The default model is `mcp-learning-llama3.2`, a separate local configuration
 that reuses your already-installed `llama3.2:3b` weights.
 NuGet packages require internet during the initial restore. The model runs locally,
@@ -48,7 +48,8 @@ Try these prompts:
 | --- | --- |
 | `What is 17 plus 25?` | Model requests `add_numbers`; answer is 42. |
 | `When does Learning Bookshop open on Saturday?` | Model requests `get_store_hours`; answer uses fictional demo hours. |
-| `Search the web for Kubernetes and tell me what it is.` | Model can request `search_web` and answer using search snippets and links. |
+| `In the Northwind database, what is the unit price of Chai and how many units are in stock?` | Model requests `find_northwind_products`; the answer uses the local database. |
+| `Search the web for 2026 gold price` | The host calls `search_web` directly and displays Bing snippets and links. |
 | `Say hello in one sentence.` | Model answers directly; no tool call. |
 | `What is MCP? Explain simply.` | Model answers from its knowledge; no tool needed. |
 
@@ -67,8 +68,11 @@ Do not select an embedding-only model or a model without tool support.
 You can also try `--model 'llama3.2:3b'` to observe the stock template's
 unnecessary tool calls. Small local models can sometimes choose the wrong tool or skip one. Tool
 descriptions and the system prompt guide them; MCP itself does not decide.
-This application deliberately does not use keyword matching or pretend that
-plain text resembling a function call is a real tool call.
+For explicit commands beginning with `search the web for` (optionally preceded
+by `yes` or `please`), the host calls the MCP search tool directly and shows
+Bing's results without asking the model to summarize. The text after `for` is
+the query; a leading year is moved after the topic for better search relevance.
+For other prompts, Ollama decides whether to request a tool.
 
 ## What actually happens?
 
@@ -96,7 +100,7 @@ Answer displayed
 **Important:** The LLM does not directly connect to MCP or execute C#.
 It proposes a structured tool call with a name and arguments. The **host**
 validates the tool name, executes the request through its **MCP client**, then
-gives the result back to the LLM. Here, the host automatically permits all three
+gives the result back to the LLM. Here, the host automatically permits all four
 demo tools, including sending search phrases to Bing without further approval.
 A real host should apply appropriate permissions and ask for
 approval for sensitive or destructive tools.
@@ -125,11 +129,21 @@ The client locates the server's build output relative to its own build output,
 using the same Debug/Release configuration. Keep the solution's folder layout;
 this is a learning project, not a standalone published application.
 
+## Northwind product lookup
+
+[NorthwindTools.cs](McpServer/NorthwindTools.cs) connects to a database named
+`Northwind` on `(localdb)\MSSQLLocalDB` using the Windows account that starts the
+chat. No username or password is needed. The database must already be attached,
+and the account must be able to read `dbo.Products`. The tool runs a fixed
+`SELECT` with the product name as a parameter; it cannot run model-generated SQL
+or modify the database. It returns at most five matches.
+
 ## Verify
 
 ```powershell
 dotnet run --project .\OllamaChat -- --self-test
 dotnet run --project .\OllamaChat -- --prompt 'What is 17 plus 25?'
+dotnet run --project .\OllamaChat -- --prompt 'In the Northwind database, what is the unit price of Chai and how many units are in stock?'
 dotnet run --project .\OllamaChat -- --prompt 'When does Learning Bookshop open on Saturday?'
 dotnet run --project .\OllamaChat -- --prompt 'Search the web for Kubernetes and tell me what it is.'
 dotnet run --project .\OllamaChat -- --prompt 'Say hello in one sentence.'
@@ -137,7 +151,7 @@ dotnet run --project .\OllamaChat -- --prompt 'Say hello in one sentence.'
 
 The self-test requires no Ollama. It checks discovery, argument schemas, real
 tool calls, negative/decimal addition, store data, and invalid argument errors.
-It does not contact Bing; the search prompt above is a separate live check.
+It does not contact Bing or Northwind; those prompts are separate live checks.
 The search uses a hidden browser and returns search result snippets, not full
 web pages. Bing may block automated searches, require consent or a CAPTCHA,
 or change its results page; these cases produce a tool error. Search results are
