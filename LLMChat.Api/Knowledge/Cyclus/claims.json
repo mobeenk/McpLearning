@@ -1,0 +1,1088 @@
+[
+  {
+    "id": "claims-searching-and-opening",
+    "title": "Search claims and open an existing claim",
+    "area": "Claims",
+    "routes": [
+      "/claim/claim-list",
+      "/claim/claim-list-by-invoice"
+    ],
+    "keywords": ["claim search", "Payer Name", "Policy No", "claim status", "encounter", "open claim", "edit claim"],
+    "prerequisites": ["Be signed in; both claim list routes are protected by the application authentication guard."],
+    "steps": [
+      "Open the claim list view that matches the work at hand; the two routes load different list components, so do not assume they are identical.",
+      "Use the visible Payer Name and Policy No search fields, then select Search.",
+      "For the advanced search on the claims list, set any relevant Facility, Encounter Type, Payer Name, Date By, Start Date, End Date, Claim Status, Encounter No, Member ID, Claim ID, or Policy No filters and select Search.",
+      "Open a claim using the row's view or edit action. The application passes the claim identifier and edit/read-only state to the claim details screen."
+    ],
+    "notes": [
+      "The claims list shows summary counts for statuses including Pending, Error, Reviewed, Ready to Submit, Submitted, Partial Accepted, Settled, and Rejected.",
+      "Invoice-level selection on the claims list is enabled only for Pending and Reviewed invoices. Available bulk actions depend on selected status and can prompt to ignore records whose current status conflicts with the chosen action.",
+      "The code navigates to claim details using in-memory router state; opening the details route directly without that context is not established by these sources.",
+      "The exact navigation/menu label is not defined by the route declaration; use the application link that opens the route.",
+      "Catalog routes are application-relative. The current application uses hash routing, so browser navigation uses a fragment such as #/claim/claim-list under the current application origin."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/app-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-list/claim-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-list/claim-list.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim/claim.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim/claim.component.ts"
+    ]
+  },
+  {
+    "id": "claims-bulk-status-processing",
+    "title": "Apply a bulk status action to selected claims",
+    "area": "Claims",
+    "routes": ["/claim/claim-list"],
+    "keywords": ["bulk action", "Process", "Reviewed", "Ready to Submit", "claim status", "select claims"],
+    "prerequisites": ["Claims must be listed on the claims list screen."],
+    "steps": [
+      "Search for the claims to work on and select eligible invoice rows using their checkboxes.",
+      "Choose the required action from the bulk-action selector.",
+      "Select Process and review any confirmation about selected claims whose current statuses do not match the action.",
+      "Confirm only when the displayed action and selected records are correct; refresh the list to check the resulting statuses."
+    ],
+    "notes": [
+      "Invoice checkboxes are disabled unless an invoice is Pending or Reviewed.",
+      "The component contains status-mismatch confirmation paths for actions involving Pending, Reviewed, and Ready to Submit; it may ignore mismatched records if the user proceeds. Do not treat a confirmation as proof every selected claim changed state.",
+      "The service call and final status are determined by application data and backend response; the guide does not promise a successful transition."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-list/claim-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-list/claim-list.component.ts",
+      "cyclus-claim-ui/src/app/shared/services/claim.service.ts"
+    ]
+  },
+  {
+    "id": "claims-editing-details",
+    "title": "Review and update an existing claim",
+    "area": "Claims",
+    "routes": ["/claim/manageclaim"],
+    "keywords": ["claim details", "Save", "diagnosis", "attachments", "Activity Log", "edit claim"],
+    "prerequisites": ["Open the claim from a list action that supplies its claim identifier and edit mode."],
+    "steps": [
+      "Review the displayed Patient, Encounter, Clinic, and Insurance details and the diagnosis and service sections.",
+      "If the screen is in edit mode, update the applicable editable claim fields. Use the diagnosis search and Add or Update controls to manage diagnoses; use the priority controls to reorder diagnoses when needed.",
+      "To attach a document, enter a Caption (up to 30 characters), choose the attachment, and select Upload.",
+      "Select Save to persist the editable claim changes, or Back to return to the originating list.",
+      "Use Activity Log when you need to inspect the claim's recorded activity."
+    ],
+    "notes": [
+      "The screen's editability is passed in navigation state; a read-only view is also supported.",
+      "The separate Reject Claim form requires Comments/Reason before its Submit button is enabled.",
+      "Do not enter patient information in examples or support requests. Claim details can contain sensitive health and identity data."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-list/claim-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim/manageclaim.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim/manageclaim.component.ts",
+      "cyclus-claim-ui/src/app/shared/services/claim.service.ts"
+    ]
+  },
+  {
+    "id": "claims-api-request-validation",
+    "title": "Developer reference: required claim fields at the API boundary",
+    "area": "Claims API developer reference",
+    "routes": ["/claim/manageclaim"],
+    "keywords": ["backend validation", "SubmitClaim", "PayerID", "BatchRefNo", "EncounterNo", "required fields"],
+    "prerequisites": ["This applies to a claim request submitted through the claim API; it is not a complete UI field checklist."],
+    "steps": [
+      "Before diagnosing an API validation failure, check that the request has PayerID, BatchRefNo, DoctorID, FacilityID, ClinicID, EncounterType, and EncounterNo.",
+      "Check the API response for the specific validation message before retrying.",
+      "Correct the request data in the authorized source workflow and submit again only when the validation issue is resolved."
+    ],
+    "notes": [
+      "These required fields come from the backend FluentValidation validator for ClaimRequest. OrganizationID is commented out there, and other commented rules are not active requirements in that validator.",
+      "The UI's Save operation and the API's SubmitClaim validation are distinct paths; this article does not claim that every field is shown or required on the claim detail form.",
+      "Backend acceptance does not establish that an external payer or NPHIES submission succeeded."
+    ],
+    "sources": [
+      "Cyclus.Claim/Zyklus.Claim.API/Filter/ClaimValidator.cs",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimController.cs",
+      "Cyclus.Claim/Zyklus.Claim.Services/Repository/ClaimService.cs"
+    ]
+  },
+  {
+    "id": "claims-bulk-upload",
+    "title": "Upload, validate, and process a claim file",
+    "area": "Claims",
+    "routes": ["/claim/upload-claims", "/claim/uploaded-claims"],
+    "keywords": ["bulk upload", "Upload Claims", "file type", "Validate", "Proceed", "claim file"],
+    "prerequisites": ["Use a file type offered by the screen and have the claim file ready."],
+    "steps": [
+      "On Upload Claims, enter the required Caption (maximum 30 characters) and choose the required claim-file attachment.",
+      "Select Upload after the caption and attachment make the form valid.",
+      "In the uploaded claims list, select Validate for the uploaded file and review the validation result.",
+      "Select Proceed only after validation when the file has at least one successful record and has not already been proceeded.",
+      "Use Refresh to reload the uploaded-file list. Remove is unavailable after a file has been proceeded."
+    ],
+    "notes": [
+      "The initialized selector options contain Excel, while the upload handler accepts XML, XLS, and XLSX MIME types. The template's File Type control is not initialized in the form (its initialization is commented out); do not rely on that selector as an established format-switching workflow.",
+      "The backend exposes separate upload, validation, processing, deletion, and template-download endpoints. Validation success alone does not mean claim processing completed.",
+      "Do not upload real claim files into an unapproved environment."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/upload-claims/upload-claims.component.html",
+      "cyclus-claim-ui/src/app/components/claim/upload-claims/upload-claims.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/uploaded-claims/uploaded-claims.component.html",
+      "cyclus-claim-ui/src/app/components/claim/uploaded-claims/uploaded-claims.component.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimController.cs"
+    ]
+  },
+  {
+    "id": "claims-bulk-cancellation",
+    "title": "Create a bulk claim-cancellation request",
+    "area": "Claims",
+    "routes": ["/claim/claim-bulk-cancellation"],
+    "keywords": ["bulk cancellation", "claim identifiers", "Bulk ID", "cancellation history", "NHIC ID"],
+    "prerequisites": ["Have the appropriate facility and authorized claim identifiers."],
+    "steps": [
+      "Use Add to open the cancellation form.",
+      "Select a Facility, provide the payer and TPA NHIC identifiers when the form requires them, and enter claim identifiers in the identifier field or upload an Excel/CSV file.",
+      "Check the parsed identifiers and correct any validation errors. The request requires at least one identifier.",
+      "Select Save to submit the cancellation request, then use the list's Facility, Payer NHIC ID, TPA NHIC ID, Bulk ID, or Status filters to locate its history."
+    ],
+    "notes": [
+      "The component limits one request to 20 claim identifiers; additional identifiers are rejected or ignored with a validation message.",
+      "The bulk ID filter is disabled until available to the screen. Request status indicates processing state, not proof of an external cancellation outcome.",
+      "The form's default field values are not reproduced here; use only identifiers issued for the current authorized task."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-bulk-cancellation/claim-bulk-cancellation.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-bulk-cancellation/claim-bulk-cancellation.component.ts",
+      "cyclus-claim-ui/src/app/shared/services/claim-cancellation.service.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimCancellationController.cs"
+    ]
+  },
+  {
+    "id": "claims-nphies-trigger-search",
+    "title": "Search NPHIES trigger jobs and inspect a job",
+    "area": "Claims",
+    "routes": ["/claim/nphies-process-list"],
+    "keywords": ["NPHIES", "Nphies Trigger", "trigger job", "process status", "task summary"],
+    "prerequisites": ["Have access to the NPHIES trigger list and the relevant date or facility context."],
+    "steps": [
+      "Set From Date and To Date, and optionally choose Facility, Payer, Type, and Status.",
+      "Select Search to load matching NPHIES trigger jobs.",
+      "For a listed job, use its summary or claims-information action to inspect the available job details; use Load Summary or the report action when shown.",
+      "Use the job's confirmation or delete control only after checking the selected process and the confirmation prompt."
+    ],
+    "notes": [
+      "The list exposes process-specific actions including Confirm, Delete Process, task summary, report, and claims information; the actions shown depend on process state.",
+      "The delete control is hidden after VerifiedOn is populated. Confirming or deleting a process does not guarantee downstream payer processing.",
+      "The search form includes date, facility, payer, type, and status filters; the available option values are populated by the application."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/nphies-process-list/nphies-process-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/nphies-process-list/nphies-process-list.component.ts"
+    ]
+  },
+  {
+    "id": "claims-nphies-trigger-setup",
+    "title": "Configure a NPHIES trigger process",
+    "area": "Claims",
+    "routes": ["/claim/nphies-process"],
+    "keywords": ["NPHIES trigger", "From Date", "To Date", "Facility", "Payer", "Policy", "Limit"],
+    "prerequisites": ["Use the process form when a trigger configuration is needed; available facilities and payer options depend on configured data."],
+    "steps": [
+      "Set the required From Date and To Date, Facility, Payer, and Type. Choose Policy as applicable.",
+      "Set the required Limit and review the Submitted Single Claim and Include PreAuthRef options.",
+      "Select Save only when the form is valid, changed, and not loading; review the resulting process status in the trigger list."
+    ],
+    "notes": [
+      "The process form supports create and edit modes; the selected mode and task identifier are carried in navigation state.",
+      "No successful external NPHIES submission is implied by saving a trigger configuration."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/nphies-process/nphies-process.component.html",
+      "cyclus-claim-ui/src/app/components/claim/nphies-process/nphies-process.component.ts"
+    ]
+  },
+  {
+    "id": "claims-nphies-bundle-submission",
+    "title": "Validate and submit a NPHIES bundle-ID batch",
+    "area": "Claims",
+    "routes": ["/claim/nphies-process-bundleid"],
+    "keywords": ["NPHIES bundle ID", "Validate", "Submit", "trigger type", "Include PreAuthRef"],
+    "prerequisites": ["Have the bundle identifiers and the matching payer/facility context for the task."],
+    "steps": [
+      "Choose Payer and Facility, set From Date and To Date, and select Trigger Type.",
+      "At Upload File With Claim Identifier, choose one workbook containing the intended identifiers in its first column. Review the IncludePreAuthRef option.",
+      "Select Validate and review the listed identifiers and validation results before selecting Submit.",
+      "If the queued-claims warning appears, remove the queued claims from the file and upload it again as directed rather than trying to reprocess them."
+    ],
+    "notes": [
+      "Both Validate and Submit are disabled while the form is invalid or loading.",
+      "The UI distinguishes pre-submission validation from submission; neither action by itself proves an external NPHIES response was accepted.",
+      "Despite the route and header referring to BundleId, the upload label says Claim Identifier. The handler reads the first worksheet, maps each row's first cell, and trims nonempty values; it does not skip a heading row. Do not invent a header or populate unrelated columns as identifiers.",
+      "The submit/validate handlers require payer, facility, and trigger/process type. Submission additionally filters to identifiers marked valid and requires at least one of them. Exactly one input file is accepted."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/nphies-process-bundleId/nphies-process-bundleId.component.html",
+      "cyclus-claim-ui/src/app/components/claim/nphies-process-bundleId/nphies-process-bundleId.component.ts"
+    ]
+  },
+  {
+    "id": "claims-resubmission-response",
+    "title": "Search rejected services and submit a response",
+    "area": "Claims",
+    "routes": ["/claim/claim-communication"],
+    "keywords": ["resubmission", "Submit Response", "rejected service", "Bundle Id", "Service Code", "Reject Reason"],
+    "prerequisites": ["Have access to the Resubmission screen and identify the payer, facility, and date range to search."],
+    "steps": [
+      "Choose Payer and Facility, then set the required Start Date and End Date.",
+      "Optionally narrow results using Service Code, Bundle Id, status, or the available minimum and maximum amount filters, then search.",
+      "Review the rejected-service and denial-response details for the selected claim.",
+      "Select eligible rejected services or use Select All, then select Add Response. Choose Select Reject Reason (the denial-response code), optionally add Remarks and an attachment, and select Save changes.",
+      "After responses have been added, select Submit Response for the searched facility, payer, and date-range summary, then review the result.",
+      "Use the Submit Response log action to review the recorded response history."
+    ],
+    "notes": [
+      "The page defaults its date range using the application's previous-month date helper; Facility, Payer, Start Date, and End Date are required search controls.",
+      "Resubmission controls are disabled for some states, including completed responses and statuses outside the component's permitted state checks.",
+      "Add Response saves response data for selected services or the select-all filter, whereas Submit Response submits the current searched summary. The latter handles specific backend warnings for an active trigger or no response added.",
+      "A denial-response code is required before Save changes. Remarks and attachments are optional; supplied attachments must be a supported image MIME type or PDF and no larger than 5 MB.",
+      "Submitting a response requests backend processing; successful payer or NPHIES acceptance is not guaranteed by the UI."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-communication/claim-communication.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-communication/claim-communication.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-communication/submit-response-logs/submit-response-log.component.ts"
+    ]
+  },
+  {
+    "id": "claims-dhpo-submission",
+    "title": "Filter and configure a DHPO submission process",
+    "area": "Claims",
+    "routes": ["/claim/dhpo-submission", "/claim/dhpo-submission-process"],
+    "keywords": ["DHPO", "DPHO Submission", "submission process", "Facility", "Payer", "From Date"],
+    "prerequisites": ["Use the submission list or process form available in the configured environment."],
+    "steps": [
+      "On the submission list, filter by From Date, To Date, Facility, Payer, and Type as needed, then review matching processes.",
+      "Open the relevant process and set its date range, Facility, Payer, and other displayed criteria.",
+      "Select Save only when the process form is valid, changed, and not loading; then review the process in the list."
+    ],
+    "notes": [
+      "The application labels the list DPHO Submission (while route/component names use DHPO). This guide preserves the screen's displayed label.",
+      "The sources establish the filter and process-form controls but not a successful external DHPO result."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/dhpo-submission/dhpo-submission.component.html",
+      "cyclus-claim-ui/src/app/components/claim/dhpo-submission/dhpo-submission.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/dhpo-submission-process/dhpo-submission-process.component.html",
+      "cyclus-claim-ui/src/app/components/claim/dhpo-submission-process/dhpo-submission-process.component.ts"
+    ]
+  },
+  {
+    "id": "claims-doctor-monitoring",
+    "title": "Submit or search doctor claim-monitoring data",
+    "area": "Claims",
+    "routes": ["/claim/doctor-claim-monitoring"],
+    "keywords": ["doctor claim monitoring", "File Month", "append", "acknowledgment", "facility"],
+    "prerequisites": ["Have the authorized monitoring file or the date and facility filters needed to search records."],
+    "steps": [
+      "Use Download Sample Excel Format for the monitoring file layout, choose Month, review IsAppend, choose the Upload File, and select Submit.",
+      "To find existing monitoring data, use the Doctor Claim Monitor Data filters such as Ack. From, Ack. To, File Month, Facility, and any additional displayed filter.",
+      "Review the matching record before taking follow-up action."
+    ],
+    "notes": [
+      "The submission Month date picker uses a month/year display format. The submit handler rejects a missing upload or month.",
+      "The routed component renders both the submission and monitoring-list areas; available list filters are populated by the application.",
+      "The source does not establish an external acknowledgment or a successful upload result."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/doctor-claim-monitoring/doctor-claim-monitoring.component.html",
+      "cyclus-claim-ui/src/app/components/claim/doctor-claim-monitoring/doctor-claim-monitoring.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/doctor-claim-monitoring/doctor-claim-monitoring-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/doctor-claim-monitoring/doctor-claim-monitoring-list.component.ts"
+    ]
+  },
+  {
+    "id": "claims-claim-detail-grids",
+    "title": "Search the card-based claim and medical worklists",
+    "area": "Claims",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details list", "medical details list", "claim detail", "medical data"],
+    "prerequisites": ["Be signed in and open the applicable worklist; available filters and actions depend on role and configuration."],
+    "steps": [
+      "Open Advanced Search and choose the applicable search criteria. Available fields include Search by Bundle ID, Facility, Encounter Type, Payer, Date By, Start Date, End Date, Claim Status, Encounter No, Member ID, Claim ID, Policy No, and Patient Id.",
+      "Where displayed, further narrow the worklist by Claim Case Type, Technical Status, Medical Status, submission/final-response status, Users, Payer Type, or Error.",
+      "Run the search, then select a claim card on the left. The right-hand pane displays the selected claim; before selection it says Click claim from left.",
+      "Review the selected record in the detail pane rather than assuming that a list summary represents an individual invoice."
+    ],
+    "notes": [
+      "Both routed lists embed ClaimDetailsComponent; the medical route sets its medical rendering mode. They also share claim cards, statistics, and the advanced-search component.",
+      "Saved Searches appears only when saved searches exist. Conditional role/configuration fields should not be assumed present for every user."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-details-list/claim-details-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-details-list/claim-details-list.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/medical-details-list/medical-details-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/medical-details-list/medical-details-list.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-list-search/claim-list-search.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-list-search/claim-list-search.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html"
+    ]
+  },
+  {
+    "id": "claims-communication-process-route",
+    "title": "Search and verify the NPHIES queue",
+    "area": "Claims",
+    "routes": ["/claim/nphies-comm-process-list"],
+    "keywords": ["NPHIES communication", "communication process", "process list"],
+    "prerequisites": ["Be signed in and have the process context needed to identify the relevant record."],
+    "steps": [
+      "On Nphies Queue, set From Date and To Date and optionally choose Facility, Payer, and Type; select Search.",
+      "Use Load Summary or Claims Info for the chosen process to inspect the available summary and claims.",
+      "For an unverified process, use verify Process and confirm the prompt only after checking the process.",
+      "Use Edit only while it is available before verification. Print appears only after the process has a ProcessedOn value."
+    ],
+    "notes": [
+      "The template hides verification after VerifiedOn is populated and hides Edit after verification. The verification handler calls VerifyProcessQueue and reports backend success or failure.",
+      "Printing and verification are separate from an external submission result; inspect the process and claim information for the returned state."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/nphies-comm-process-list/nphies-comm-process-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/nphies-comm-process-list/nphies-comm-process-list.component.ts"
+    ]
+  },
+  {
+    "id": "claims-remittance-search-and-settlement",
+    "title": "Search remitted claims and update settlement details",
+    "area": "Claims",
+    "routes": [
+      "/claim/remittance",
+      "/claim/remittance-list",
+      "/claim/manageremittance"
+    ],
+    "keywords": ["remittance", "settlement", "Settled", "Rejected", "Partial Settled", "rejection reason"],
+    "prerequisites": ["Open a remitted claim from the list so that the application supplies its claim identifier and edit/view state."],
+    "steps": [
+      "Use Payer Name and Policy No, then select Search. The older remittance view also has an advanced search containing Facility, Encounter Type, Start Date, End Date, Member ID, and Claim ID.",
+      "Open the selected record with its edit or view action.",
+      "In edit mode, review each service's settlement amount and remittance status. The status selector offers Rejected and Settled, and Partial Settled for inpatient encounter type 2.",
+      "Where a rejection reason is needed, use Update Rejection Reason and choose from the active reasons.",
+      "Use the main form's Save action to persist settlement details, and review the returned success or failure message."
+    ],
+    "notes": [
+      "The detail template disables edits for finalized settlement/rejection states and for read-only mode.",
+      "The rejection-reason modal has a Save button bound with (onclick), not the Angular (click) binding used by ordinary working actions. Its handler exists, but this source does not establish that clicking that modal Save dispatches it; do not rely on that modal as a proven save path.",
+      "The settlement handler constrains entered amounts against CompanyShare and handles Rejected and Partial Settled differently; correct rejected input rather than assuming arbitrary partial amounts will be accepted."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/remittance-list/remittance-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/remittance-list/remittance-list.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/remittance/remittance.component.html",
+      "cyclus-claim-ui/src/app/components/claim/remittance/manageremittance.component.html",
+      "cyclus-claim-ui/src/app/components/claim/remittance/manageremittance.component.ts"
+    ]
+  },
+  {
+    "id": "claims-adapter-configuration",
+    "title": "Configure a claim adapter and its field mapping",
+    "area": "Claims administration",
+    "routes": [
+      "/claim/adapter",
+      "/claim/manageadapter"
+    ],
+    "keywords": ["claim adapter", "Adapter Mapping", "File Output", "Adapter Name", "File Type"],
+    "prerequisites": ["Be signed in and have the configuration context required by the relevant screen."],
+    "steps": [
+      "From the adapter list, open the adapter to maintain or use the available add action.",
+      "Set Adapter Name, Adapter Type, and File Type in the adapter form.",
+      "In Adapter Mapping, use Add to add a mapping row, choose Field and Parameter Type, enter its Value, and set its active flag as appropriate. Remove deletes a mapping row from the form.",
+      "Review the File Output section for the selected format, then use Save when the form permits it.",
+      "For an adapter file download from the list, set From Date and To Date, choose File Type, and review the IsMDS option."
+    ],
+    "notes": [
+      "The mapping handler adds required/duplicate validation to Field and Parameter Type combinations; resolve row errors before saving.",
+      "Save is supplied by the shared generic-buttons component and wired to SaveData. Availability follows the current form/edit configuration.",
+      "This guide does not prescribe an adapter output schema; it is selected/configured in the form and can differ by format."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/adapter/adapter.component.html",
+      "cyclus-claim-ui/src/app/components/claim/adapter/adapter.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/adapter/manageadapter.component.html",
+      "cyclus-claim-ui/src/app/components/claim/adapter/manageadapter.component.ts"
+    ]
+  },
+  {
+    "id": "claims-independent-eligibility",
+    "title": "Check independent insurance eligibility",
+    "area": "Claims administration",
+    "routes": ["/claim/independent-eligibility"],
+    "keywords": ["independent eligibility", "eligibility"],
+    "prerequisites": ["Be signed in; use authorized patient details only within the application, not in examples or support requests."],
+    "steps": [
+      "Select a Facility and choose at least one Payer in the eligibility list.",
+      "Enter Name and National ID /Iqama, choose Identification type, review Birth of date, and select gender.",
+      "Select Search and review returned coverage/benefit information for the chosen payer.",
+      "Use the clear control when beginning a different search so that prior coverage and selected facility/payers are cleared."
+    ],
+    "notes": [
+      "The search handler requires facility, at least one payer, name, an identification number of at least 10 characters, identification type, and gender. The birth-date input is displayed with a required indicator, but a separate date validation check is not present in the reviewed validateForm method.",
+      "Payer indicators are based on returned coverage data. No coverage response is fabricated or treated as guaranteed eligibility."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/claim/independent-eligibility/independent-eligibility/independent-eligibility.component.html",
+      "cyclus-claim-ui/src/app/components/claim/independent-eligibility/independent-eligibility/independent-eligibility.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/independent-eligibility/independent-search/independent-search.component.html",
+      "cyclus-claim-ui/src/app/components/claim/independent-eligibility/independent-search/independent-search.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/independent-eligibility/independent-lists/independent-lists.component.html",
+      "cyclus-claim-ui/src/app/components/claim/independent-eligibility/independent-lists/independent-lists.component.ts"
+    ]
+  },
+  {
+    "id": "claims-coder-encounter-search",
+    "title": "Search coder-desk encounters",
+    "area": "Coder desk",
+    "routes": ["/coder-desk/encounter-list"],
+    "keywords": ["coder desk", "encounter search", "Bundle ID", "Facility", "Payer", "Patient Id", "Speciality"],
+    "prerequisites": ["Be signed in and have access to the coder-desk encounter list."],
+    "steps": [
+      "Search by Bundle ID when that identifier is known, or open the advanced search.",
+      "Set relevant filters such as Facility, Encounter Type, Payer, Patient Id, Speciality, encounter date range, or Invoice Date From and Invoice Date To.",
+      "Select Search and open the matching encounter to review its coding details."
+    ],
+    "notes": [
+      "The encounter list includes saved-search controls when saved searches exist.",
+      "Patient identifiers and encounter contents are sensitive; do not include actual records in examples or support messages."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/coder-desk/coder-desk-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/coder-desk/encounter-list/encounter-list.component.html",
+      "cyclus-claim-ui/src/app/components/coder-desk/encounter-list/encounter-list.component.ts",
+      "cyclus-claim-ui/src/app/components/coder-desk/encounter-list-search/encounter-list-search.component.html",
+      "cyclus-claim-ui/src/app/components/coder-desk/encounter-list-search/encounter-list-search.component.ts"
+    ]
+  },
+  {
+    "id": "claims-coder-update-and-review",
+    "title": "Update and transition a coded encounter",
+    "area": "Coder desk",
+    "routes": ["/coder-desk/encounter-list"],
+    "keywords": ["coder desk", "diagnosis", "procedure", "Save", "Coded", "Approved", "Review", "Correction", "DRG"],
+    "prerequisites": ["Open an encounter from the coder-desk list; available actions depend on the user's configured permissions and the encounter status."],
+    "steps": [
+      "Review the encounter details, diagnosis, and service information.",
+      "Use Search ICD Code or the applicable add/edit controls to update diagnosis and procedure information, then select Save.",
+      "Open the status/action menu and choose an available action such as Pending, Coded, Approved, Review, or Correction.",
+      "If the action requires more information, complete its review, correction, or reassignment dialog and confirm the action.",
+      "Use Compute DRG only when that action is available and the encounter needs recomputation; review the returned result."
+    ],
+    "notes": [
+      "The status menu is permission- and status-dependent. The component derives action visibility from configured permissions plus the current encounter state; missing controls do not establish an error or missing permission by themselves.",
+      "Save, self-assignment, reassignment, review, correction, and DRG actions are distinct operations. A saved code edit does not by itself mean the encounter is Approved.",
+      "Encounter details can contain PHI; use synthetic examples only."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/coder-desk/coder-desk-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/coder-desk/encounter-details/encounter-details.component.html",
+      "cyclus-claim-ui/src/app/components/coder-desk/encounter-details/encounter-details.component.ts",
+      "cyclus-claim-ui/src/app/components/coder-desk/coder-modification/coder-modification.component.html",
+      "cyclus-claim-ui/src/app/components/coder-desk/coder-modification/coder-modification.component.ts"
+    ]
+  },
+  {
+    "id": "claims-coder-task-distribution",
+    "title": "Configure coder task distribution",
+    "area": "Coder desk",
+    "routes": ["/coder-desk/coderdesk-task-distribution"],
+    "keywords": ["coder task distribution", "Facility", "Coder Supervisor", "Task Percentage", "Task Complexity", "Team"],
+    "prerequisites": ["Have the facility, supervisor, encounter type, and team details for the distribution setup."],
+    "steps": [
+      "Select Facility, Coder Supervisor, Encounter Type, and the relevant Team.",
+      "Enter the Task Percentage and select the applicable Task Complexity values.",
+      "Use the add/remove controls to assemble the distribution entries.",
+      "Review the entries and select Save."
+    ],
+    "notes": [
+      "Task Percentage is a required field in the displayed add form; the UI also constrains the entry between 0 and 100 there.",
+      "The Save handler requires at least one user and groups task percentages by encounter type. Each encounter-type group's total must equal exactly 100%; otherwise it reports an error and does not save."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/coder-desk/coder-desk-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/coder-desk/task-distribution/task-distribution.component.html",
+      "cyclus-claim-ui/src/app/components/coder-desk/task-distribution/task-distribution.component.ts"
+    ]
+  },
+  {
+    "id": "claims-coder-dashboard",
+    "title": "Review coder-desk status summaries",
+    "area": "Coder desk",
+    "routes": ["/coder-desk/coderdesk-dashboard"],
+    "keywords": ["coder desk dashboard", "Pending", "Coded", "Approved", "Review", "Correction"],
+    "prerequisites": ["Be signed in and have access to the coder-desk dashboard."],
+    "steps": [
+      "Open the dashboard and review the status totals, including Pending, Coded, Approved, Correction, and Review.",
+      "Use the displayed facility breakdown to identify the status group that needs follow-up.",
+      "Open the encounter list to search and act on individual encounters."
+    ],
+    "notes": [
+      "The dashboard displays counts grouped by encounter type and facility; it is a summary, not an approval action."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/coder-desk/coder-desk-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/coder-desk/dashboard-new/dashboard-new.component.html",
+      "cyclus-claim-ui/src/app/components/coder-desk/dashboard-new/dashboard-new.component.ts"
+    ]
+  },
+  {
+    "id": "claims-coder-exclude-config",
+    "title": "Maintain the coder-desk exclude list",
+    "area": "Coder desk administration",
+    "routes": ["/coder-desk/exclude-config"],
+    "keywords": ["coder desk", "exclude configuration", "exclude-config"],
+    "prerequisites": ["Be signed in and have the appropriate application configuration."],
+    "steps": [
+      "In Add Item to Exclude List, select Type, then search and select the corresponding Procedure, Procedure Sub Group, or Item.",
+      "Use the add control to place the selected entry into the Exclude List.",
+      "Use Filter by Type, Filter by Code, or Filter by Description to locate existing entries; use Remove for an entry that should no longer be on the list.",
+      "Select Save to persist the updated list."
+    ],
+    "notes": [
+      "The label of the item search changes with the selected type. A type and item are required to add an entry; duplicate type/code entries are rejected. Save is disabled while loading and the handler rejects an empty list.",
+      "These sources establish editing and saving the exclude list, not the complete downstream exclusion algorithm; no claim is made that an entry removes an entire encounter or invoice."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/coder-desk/coder-desk-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/coder-desk/exclude-config/exclude-config.component.html",
+      "cyclus-claim-ui/src/app/components/coder-desk/exclude-config/exclude-config.component.ts"
+    ]
+  },
+  {
+    "id": "claims-card-detail-save-and-validation",
+    "title": "Correct a card-based claim and run rule validation",
+    "area": "Claims",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim validation", "Run Rule Engine", "principal diagnosis", "Birth Weight", "Save", "review", "technical approval", "medical approval"],
+    "prerequisites": ["Select a claim card in the worklist; editable actions depend on configured permissions, claim status, and country configuration."],
+    "steps": [
+      "Review Patient/Clinic Details, Encounter/Insurance Details, Medical Details, diagnosis, and service information in the selected claim.",
+      "Correct editable fields and diagnoses. When principal-diagnosis validation applies, retain exactly one active Principal diagnosis and change any additional Principal diagnoses to Secondary.",
+      "When New Born is checked, provide Birth Weight greater than zero.",
+      "Select Save. If changing patient nationality, gender, or birth date triggers a dialog about other active claims, explicitly choose whether to apply the change beyond the selected claim.",
+      "Use Validate from the action menu and review returned rule-engine errors before using a review or approval action.",
+      "Use the available Review action for the reviewed transition. Ready To Submit is offered for Reviewed claims when the configured action is enabled; it marks readiness and is not the NPHIES trigger submission itself."
+    ],
+    "notes": [
+      "Principal-diagnosis checks are skipped when the user does not have the Add Diagnosis action enabled; this is the component's explicit condition, not a universal medical rule.",
+      "Save/review can prompt about not-yet-performed services whose codes start with 02 or 03. Confirm only after reviewing the warning.",
+      "Technical and Medical review/verify/approve/reject controls are separately configured and country-dependent. The template checks isForKSA for technical and medical approval controls.",
+      "The detail action menu is also status-dependent; do not assume every transition is available for every claim."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/update-all-active-claims/update-all-active-claims.component.html",
+      "cyclus-claim-ui/src/app/components/claim/update-all-active-claims/update-all-active-claims.component.ts",
+      "Cyclus.Claim/Zyklus.Claim.Services/Repository/ClaimService.cs"
+    ]
+  },
+  {
+    "id": "claims-card-attachments",
+    "title": "Upload, download, or remove a claim PDF attachment",
+    "area": "Claims",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim attachments", "PDF", "Fill Caption", "Upload", "Download", "Delete", "external documents"],
+    "prerequisites": ["Select a claim with attachment controls available in its detail pane."],
+    "steps": [
+      "In Attachments, enter Fill Caption (maximum 100 characters), then choose the file.",
+      "Choose a PDF no larger than 9 MB and use the upload control.",
+      "Use Download beside an existing attachment to retrieve it, or Delete to remove the selected attachment when permitted.",
+      "Treat the separate external-document clearing action as destructive: its confirmation explicitly warns that external PDF attachments will not be retrievable."
+    ],
+    "notes": [
+      "The card-based detail screen requires a caption before enabling its file input and requires an attachment before enabling upload.",
+      "This PDF/size rule belongs to ClaimDetailsComponent; do not apply it to every unrelated upload screen. The older manageclaim attachment caption has a different limit.",
+      "Ordinary attachment removal and clearing all external documents are different controls and handlers."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimController.cs"
+    ]
+  },
+  {
+    "id": "claims-submission-status-and-same-bundle",
+    "title": "Check a submitted claim and resubmit with the same bundle",
+    "area": "Claims",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["Submission Status Log", "Check Status", "Resubmit With Same Bundle", "View Request & Response", "claim retrieval", "NPHIES"],
+    "prerequisites": ["Select a claim whose View Submission Status action is enabled; a submission log and claim identifier are needed for row-specific follow-up."],
+    "steps": [
+      "Open Action > View Submission Status to view the Submission Status Log.",
+      "Match the row by Claim Id, Claim Identifier, Claim Bundle Id, Nphies Status, and Created On.",
+      "Open Actions and choose Check Status when offered; read the returned Claim Status dialog.",
+      "To retry with the existing bundle, choose Resubmit With Same Bundle and confirm Yes, Resend! only after checking the identifier.",
+      "Use View Request & Response to inspect the selected submission's request/response rather than inferring the result from a list badge."
+    ],
+    "notes": [
+      "The template displays Check Status and Resubmit With Same Bundle only when the parent claim status ID is one of 67, 93, 51, 52, or 99. These are source-level identifiers, not additional user-facing status choices.",
+      "A Check Status response with overall completed and substatus complete can offer Submit with Same Bundle in its dialog. This is a separate confirmation path, not an automatic resend. The direct Resubmit With Same Bundle menu handler prompts but does not itself enforce that completed-state check.",
+      "The handler sends the claim identifier and organization context through ClaimService; returned success/failure messages are authoritative for the request, not a promise of payer adjudication.",
+      "A no-logs message is explicitly rendered when no submission records are returned."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-submission-status/claim-submission-status.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-submission-status/claim-submission-status.component.ts",
+      "cyclus-claim-ui/src/app/shared/services/claim.service.ts"
+    ]
+  },
+  {
+    "id": "claims-single-cancellation",
+    "title": "Cancel one submitted claim",
+    "area": "Claims",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["Cancel Claim", "submitted claim", "queued", "pended", "rejected", "cancellation"],
+    "prerequisites": ["The claim must have a Claim Identifier and an available Cancel Claim action."],
+    "steps": [
+      "Select the claim and review its identifier and submission status.",
+      "Use Cancel Claim from the detail menu or the relevant Submission Status Log row.",
+      "Read Cancel Claim? and confirm Yes, Cancel Claim! only for the intended identifier; choose No, Keep It to stop.",
+      "Review the returned cancellation message and refreshed claim information."
+    ],
+    "notes": [
+      "The detail item checks its enabled action permission and Nphies_Pended, Nphies_Queued, or Nphies_Rejected status, but the parent view/menu gates also apply. The internal menu hides Nphies_Pended; use the applicable NPHIES view or submission-log row rather than assuming the item is always visible.",
+      "The submission-log template shows cancellation for pended, queued, or rejected log rows. The handler rejects an absent claim identifier.",
+      "The handler issues a cancellation request and refreshes the claim. It does not establish an unconditional external cancellation."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/claim-submission-status/claim-submission-status.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-submission-status/claim-submission-status.component.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimCancellationController.cs"
+    ]
+  },
+  {
+    "id": "claims-service-observation",
+    "title": "Add a service observation remark",
+    "area": "Claims",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["Observation Remark", "New Observation Remark", "Type", "Code", "Value Type", "Description"],
+    "prerequisites": ["Open a service's observation control when available; the detail template exposes this control for the non-KSA configuration."],
+    "steps": [
+      "Open Observation Remark for the service and select Add.",
+      "In New Observation Remark, select Type, then Code, then Value Type. Each selection loads the dependent options.",
+      "Provide the description or attachment requested for the chosen value type, then select Save when enabled.",
+      "Use the observation list's file Download or Remove control for an existing file observation as appropriate."
+    ],
+    "notes": [
+      "The file-observation handler accepts PDF and rejects files larger than 5 MB; this limit differs from ordinary claim attachments.",
+      "Changing the Type or Code clears downstream selections and can disable Save until the required dependent value is provided."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-service-observation/claim-service-observation-list/claim-service-observation-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-service-observation/claim-service-observation-add/claim-service-observation-add.component.html",
+      "cyclus-claim-ui/src/app/components/claim/claim-service-observation/claim-service-observation-add/claim-service-observation-add.component.ts"
+    ]
+  },
+  {
+    "id": "claims-fee-reconciliation-import",
+    "title": "Import a NPHIES fee reconciliation file and download its report",
+    "area": "Claims",
+    "routes": ["/claim/nphies-fee-reconciliation-list", "/claim/nphies-fee-reconciliation-add"],
+    "keywords": ["Nphies Fee ReConciliation", "Upload File", "Download Sample Excel Format", "Download Report", "fee reconciliation"],
+    "prerequisites": ["Have a reconciliation file for the appropriate facility and period."],
+    "steps": [
+      "Open the add form and select Facility, From Date, and To Date.",
+      "Use Download Sample Excel Format to obtain the sample for this import rather than inventing column names.",
+      "Choose one XLSX, XLS, or CSV file within the 10 MB limit and select Submit.",
+      "On Nphies Fee ReConciliation, search using From Date, To Date, Facility, and Status.",
+      "Use Download Report for the relevant list entry to retrieve its reconciliation report."
+    ],
+    "notes": [
+      "The submit handler explicitly rejects a missing facility or file; the template disables Submit while invalid or loading.",
+      "The sample/table includes bundle identifiers, benefit payable, service month, insurer/provider/payer identifiers, and NPHIES fee/share fields. Use synthetic data for examples.",
+      "Import acceptance is separate from the business outcome recorded in the downloaded report."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/nphies-fee-reconciliation/nphies-fee-reconciliation-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/nphies-fee-reconciliation/nphies-fee-reconciliation-list.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/nphies-fee-reconciliation-add/nphies-fee-reconciliation-add.component.html",
+      "cyclus-claim-ui/src/app/components/claim/nphies-fee-reconciliation-add/nphies-fee-reconciliation-add.component.ts"
+    ]
+  },
+  {
+    "id": "claims-missing-data-import",
+    "title": "Upload a typed missing-data correction file",
+    "area": "Claims",
+    "routes": ["/claim/add-missing-data", "/claim/missing-data-list"],
+    "keywords": ["Uploaded Missing Data", "Upload Type", "Download Sample Excel Format", "PreAuth", "DDC code", "patient insurance card", "diagnosis"],
+    "prerequisites": ["Know which correction type, payer, facility, and period the import should affect."],
+    "steps": [
+      "On the add form, choose Payer, Facility, From Date, To Date, and Upload Type.",
+      "Select Download Sample Excel Format after selecting the upload type; the handler creates different sample columns for different types.",
+      "Prepare an XLSX, XLS, or CSV file using that type's sample and choose it with Upload File.",
+      "Select Submit and review the returned message.",
+      "On Uploaded Missing Data, use From Date, To Date, Facility, Payer, Status, and Upload Type to find the import."
+    ],
+    "notes": [
+      "Payer, Facility, and Upload Type are required form controls; the submit handler also explicitly rejects a missing file.",
+      "Sample generation contains type-dependent branches for approval, DDC mapping, patient insurance card, and diagnosis-related data. Do not copy sample identifiers into real correction work.",
+      "The sample-generation switch contains two UpdateDiagnosis cases with different schemas; the later duplicate case is not a reliable separate sample path. Use the actual downloaded sample and confirm the intended import type before preparing diagnosis data."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/update-missing-data/add-missing-data.component.html",
+      "cyclus-claim-ui/src/app/components/claim/update-missing-data/add-missing-data.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/update-missing-data/missing-data-list.component.html",
+      "cyclus-claim-ui/src/app/components/claim/update-missing-data/missing-data-list.component.ts"
+    ]
+  },
+  {
+    "id": "claims-missing-information-upload",
+    "title": "Upload missing ICD-code or approval information",
+    "area": "Claims",
+    "routes": ["/claim/upload-missing-information"],
+    "keywords": ["Upload Missing Information", "Upload File With ICD Code", "Upload File With Approval #", "import"],
+    "prerequisites": ["Have a file for the specific ICD-code or approval-number operation displayed by this screen."],
+    "steps": [
+      "Choose the appropriate area: Upload File With ICD Code or Upload File With Approval #.",
+      "Choose a single file in that area and select its Submit button.",
+      "Read the returned success or failure message before moving to another file."
+    ],
+    "notes": [
+      "The change handler rejects multiple files, and submission rejects an empty selection.",
+      "Both Submit buttons call the same submit handler with shared component state. The file selection determines the loaded data; this is not the typed missing-data import screen.",
+      "No downloadable column specification is exposed in the reviewed template; do not fabricate an import schema."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/upload-missing-information/upload-missing-information.component.html",
+      "cyclus-claim-ui/src/app/components/claim/upload-missing-information/upload-missing-information.component.ts"
+    ]
+  },
+  {
+    "id": "claims-rejection-reason-maintenance",
+    "title": "Add or edit a claim rejection reason",
+    "area": "Claims administration",
+    "routes": ["/claim/rejectionreason", "/claim/managerejectionreason"],
+    "keywords": ["Rejection Reason", "IsActive", "reason maintenance", "Save"],
+    "prerequisites": ["Open the reason list and use its available add or edit action."],
+    "steps": [
+      "Enter the Rejection Reason text on the manage form.",
+      "Set the active checkbox as appropriate.",
+      "Use Save; correct any form errors before retrying. Use the clear/reset action to reset the form if needed."
+    ],
+    "notes": [
+      "The reason is required and must be 6 to 500 characters.",
+      "The handler distinguishes an existing rejection identifier from a new record; do not assume changing text creates a new reason.",
+      "The remittance editor loads only reasons whose IsActive value is true."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/rejectionreason/rejectionreason.component.html",
+      "cyclus-claim-ui/src/app/components/claim/rejectionreason/rejectionreason.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/rejectionreason/managerejectionreason.component.html",
+      "cyclus-claim-ui/src/app/components/claim/rejectionreason/managerejectionreason.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/remittance/manageremittance.component.ts"
+    ]
+  },
+  {
+    "id": "claims-diagnosis-reference-and-exclusions",
+    "title": "Search master diagnoses and maintain uncovered-diagnosis mappings",
+    "area": "Claims administration",
+    "routes": ["/claim/master-diagnosis", "/claim/uncovered-diagnosis", "/claim/uncovered-add-diagnosis"],
+    "keywords": ["Master Diagnosis", "Uncovered Diagnosis", "Diagnosis Mapping", "Payer", "policy", "ICD Code"],
+    "prerequisites": ["Know the organization, facility, encounter type, payer, policy, and diagnosis context for the mapping."],
+    "steps": [
+      "To find a master diagnosis, enter a diagnosis search term in Master Diagnosis.",
+      "To find uncovered mappings, select Organization, Facility, and Encounter on Uncovered Diagnosis, then select Search.",
+      "Open the add/edit mapping form and select Organization Name, Facility Name, and Encounter Type.",
+      "In Diagnosis Mapping, add a row and choose its payer, rule type, payer policy, and ICD code selections.",
+      "Remove unneeded mapping rows and select Save after correcting validation errors."
+    ],
+    "notes": [
+      "The manage handler supports add and edit modes and refuses saving an invalid form.",
+      "Available policies and diagnoses are selected from configured lists; this guide does not prescribe or infer which diagnoses an insurer excludes."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/claim/master-diagnosis/master-diagnosis.component.html",
+      "cyclus-claim-ui/src/app/components/claim/master-diagnosis/master-diagnosis.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/uncovered-diagnosis/uncovered-diagnosis.component.html",
+      "cyclus-claim-ui/src/app/components/claim/uncovered-diagnosis/uncovered-diagnosis.component.ts",
+      "cyclus-claim-ui/src/app/components/claim/uncovered-add-diagnosis/uncovered-add-diagnosis.component.html",
+      "cyclus-claim-ui/src/app/components/claim/uncovered-add-diagnosis/uncovered-add-diagnosis.component.ts"
+    ]
+  },
+  {
+    "id": "claims-invoice-b2b-generation",
+    "title": "Search B2B invoice cards and generate a tax invoice",
+    "area": "Invoices",
+    "routes": ["/invoice/b2b-invoice"],
+    "keywords": ["B2B Invoice", "Payer Name", "Facility Name", "Invoice Type", "Select All", "generate invoice", "Tax Invoice"],
+    "prerequisites": ["Be signed in; generation is gated by the configured Record New Invoice permission."],
+    "steps": [
+      "Choose Payer Name and Facility Name, set Period Start and End Date, and choose Invoice Type as applicable.",
+      "If a TPA Payer selection is enabled by the selected payer configuration, supply the required TPA payer.",
+      "Select Search. Use Reset Filter to clear the search when starting a different selection.",
+      "Select the required invoice cards or use Select All, checking Total selected before generating.",
+      "Use the invoice-generation action and confirm Yes! on Do you want to generate Invoice for the selected card(s)?",
+      "Review the generated tax-invoice detail, including its Tax Invoice No., Status, Facility, Payer, and Period."
+    ],
+    "notes": [
+      "The handler requires a nonempty selected-card list. Card selection is not offered in the UUID detail-view mode.",
+      "The search form includes required payer, facility, and date controls; TPA-payer validation is changed by the payer-selection logic.",
+      "Generation saves a B2B invoice through InvoiceService and then loads the returned UUID. It is separate from Verify and Approve.",
+      "The /invoice module redirects its empty child path to b2b-invoice; no menu label is inferred from that redirect."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/invoice/invoice-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/invoice/b2b-invoice/home/home.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/b2b-invoice/search-b2b-invoice/search-b2b-invoice.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/b2b-invoice/search-b2b-invoice/search-b2b-invoice.component.ts",
+      "cyclus-claim-ui/src/app/components/invoice/b2b-invoice/b2b-invoice-list/b2b-invoice-list.component.html",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/InvoiceController.cs"
+    ]
+  },
+  {
+    "id": "claims-invoice-verify-approve-print",
+    "title": "Verify, approve, and print a generated tax invoice",
+    "area": "Invoices",
+    "routes": ["/invoice/b2b-invoice", "/invoice/tax-invoice"],
+    "keywords": ["tax invoice", "Verify", "Approve", "View & Print", "Hold", "Verified", "ZATCA"],
+    "prerequisites": ["Open a generated tax invoice; its UUID and invoice number must be loaded."],
+    "steps": [
+      "Review invoice details and status before transitioning it.",
+      "For a Hold invoice, use Verify when enabled and confirm the Verify the Tax Invoice prompt.",
+      "For a Verified invoice, use Approve when enabled and confirm the Approve the Tax Invoice prompt.",
+      "Review the returned status and verification/approval metadata.",
+      "Use View & Print to open the print view for the invoice."
+    ],
+    "notes": [
+      "Verify requires Hold status and the configured verify permission; Approve requires Verified status and the configured approve permission.",
+      "The displayed approval metadata is labeled Approved & Posted to ZATCA By. The browser's action label and returned metadata do not independently prove successful external ZATCA clearance.",
+      "The backend exposes distinct VerifyTaxInvoice and ApproveTaxInvoice endpoints; the service delegates them to the invoice repository."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/invoice/b2b-invoice/search-b2b-invoice/search-b2b-invoice.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/b2b-invoice/search-b2b-invoice/search-b2b-invoice.component.ts",
+      "cyclus-claim-ui/src/app/components/invoice/b2b-invoice/view-print/view-print.component.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/InvoiceController.cs",
+      "Cyclus.Claim/Zyklus.Claim.Services/Repository/InvoiceService.cs"
+    ]
+  },
+  {
+    "id": "claims-invoice-search-record-delete",
+    "title": "Search, record, or delete a tax invoice",
+    "area": "Invoices",
+    "routes": ["/invoice/tax-invoice"],
+    "keywords": ["Manage Invoice", "Record New Invoice", "Search by Invoice Number", "delete invoice", "Remarks"],
+    "prerequisites": ["Be signed in; Record New Invoice must be enabled for the user to save that form."],
+    "steps": [
+      "Search invoices using Payer Name, Facility Name, Period Start, and Period End, or use Search by Invoice Number.",
+      "Use a row's view action to load tax-invoice details.",
+      "To record an invoice, open Record New Invoice and select Facility Name, Payer Name, From Date, and To Date.",
+      "Optionally enter Remarks (up to 300 characters), then select Save.",
+      "To delete an eligible invoice, select its delete action and confirm Yes only after checking the invoice number."
+    ],
+    "notes": [
+      "Facility, payer, and both period dates are required in Record New Invoice; Save also checks its configured permission.",
+      "The list's canDelete rule permits deletion only for Hold invoices. Deletion prompts separately and should not be confused with claim cancellation.",
+      "Reset clears search filters; it is not invoice deletion."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/invoice/invoice-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/invoice/manage-invoice/search-manage-invoice/search-manage-invoice.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/manage-invoice/search-manage-invoice/search-manage-invoice.component.ts",
+      "cyclus-claim-ui/src/app/components/invoice/manage-invoice/invoice-list/invoice-list.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/manage-invoice/invoice-list/invoice-list.component.ts",
+      "cyclus-claim-ui/src/app/components/invoice/b2b-invoice/record-invoice/record-invoice.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/b2b-invoice/record-invoice/record-invoice.component.ts"
+    ]
+  },
+  {
+    "id": "claims-invoice-facility-pricing",
+    "title": "Maintain facility-invoice pricing rules",
+    "area": "Invoices",
+    "routes": ["/invoice/facility-invoice"],
+    "keywords": ["Facility Invoice - Price Setup", "Pricing Rules", "Price Type", "Price Value", "VAT Percentage", "Organization"],
+    "prerequisites": ["Open Facility Invoice - Price Setup with edit access."],
+    "steps": [
+      "Review Organization and choose Facility when creating a facility-specific rule; leaving Facility empty represents an organization-level rule in this form.",
+      "Choose Encounter Type and Price Type, enter Price Value, and enter VAT Percentage.",
+      "Save the rule when the form is valid.",
+      "Use the Pricing Rules table's edit action to change a rule or its delete action to remove a rule after reviewing the confirmation."
+    ],
+    "notes": [
+      "Price Type is required, Price Value is required and must be at least zero, and VAT Percentage must be between zero and 100.",
+      "Organization is displayed disabled and edit controls follow allowEdit. Do not assume organization selection can be changed here.",
+      "These pricing rules are consumed by facility-invoice generation; they are not payer contract maintenance."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/invoice/invoice-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/invoice/facility-invoice/price-setup/price-setup.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/facility-invoice/price-setup/price-setup.component.ts",
+      "cyclus-claim-ui/src/app/shared/services/facility-invoice.service.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/InvoiceController.cs"
+    ]
+  },
+  {
+    "id": "claims-invoice-facility-generate",
+    "title": "Search facility-invoice claims, preview totals, and save an invoice",
+    "area": "Invoices",
+    "routes": ["/invoice/generate-invoice"],
+    "keywords": ["Generate Facility Invoice", "Invoice Date From", "Invoice Date To", "Discount %", "Save Invoice", "preview"],
+    "prerequisites": ["Have the appropriate facility pricing configuration and invoice period."],
+    "steps": [
+      "Select Facility and Encounter Type (Out Patient or In Patient), and enter Invoice Date From and Invoice Date To.",
+      "Enter Discount % if needed, then select Search.",
+      "Review Search Results, including Payer Name, Encounter Type, Unit Price, Quantity, and Gross Amount.",
+      "Use the generation action to open the invoice preview, checking gross amount, discount, VAT, and final net amount.",
+      "Select Save Invoice in the editable preview to persist it; Close only closes the preview."
+    ],
+    "notes": [
+      "Facility, Encounter Type, and both dates are required; Discount % is limited to zero through 100.",
+      "Generation refuses an empty search-result list. Opening a preview is not saving; Save Invoice invokes the persistence service.",
+      "The preview calculates discount before VAT. Pricing selection checks facility-specific rules before organization-level fallbacks; inspect the displayed prices rather than assuming one global unit price.",
+      "The generation component can default VAT when it is absent from the returned pricing data. This guide does not prescribe a tax rate."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/invoice/invoice-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/invoice/facility-invoice/invoice-generation/invoice-generation.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/facility-invoice/invoice-generation/invoice-generation.component.ts",
+      "cyclus-claim-ui/src/app/components/invoice/facility-invoice/invoice-preview-dialog/invoice-preview-dialog.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/facility-invoice/invoice-preview-dialog/invoice-preview-dialog.component.ts",
+      "cyclus-claim-ui/src/app/shared/services/facility-invoice.service.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/InvoiceController.cs"
+    ]
+  },
+  {
+    "id": "claims-invoice-facility-list",
+    "title": "Find, preview, and print saved facility invoices",
+    "area": "Invoices",
+    "routes": ["/invoice/facility-invoice-list"],
+    "keywords": ["Facility Invoice List", "Preview Invoice", "View & Print", "invoice date"],
+    "prerequisites": ["Have saved facility invoices available to the current user."],
+    "steps": [
+      "On Facility Invoice List - Search Criteria, choose Facility and Invoice Date From/To as needed, then search.",
+      "Use Preview Invoice for the required row to inspect the saved invoice.",
+      "Use View & Print for its print view; use Reset to clear search criteria."
+    ],
+    "notes": [
+      "The list separates preview and print actions. A saved invoice opened for viewing is not the editable generation preview."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/invoice/invoice-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/invoice/facility-invoice/facility-invoice-list/facility-invoice-list.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/facility-invoice/facility-invoice-list/facility-invoice-list.component.ts"
+    ]
+  },
+  {
+    "id": "claims-invoice-credit-note-create",
+    "title": "Create or update a credit note against a tax invoice",
+    "area": "Invoices",
+    "routes": ["/invoice/credit-note-add", "/invoice/creditnote-master"],
+    "keywords": ["Create Credit Notes", "Tax Invoice", "Reason", "Credit Note Amount(Taxable)", "Credit Note Amount(Zero Rated)", "credit note"],
+    "prerequisites": ["Have a tax invoice eligible for a credit note."],
+    "steps": [
+      "In Create Credit Notes, select Tax Invoice and Reason. Review the populated Facility, Payer, Invoice Amount, used amounts, and Balance.",
+      "Enter Credit Note Amount(Taxable), Credit Note Amount(Zero Rated), or both as applicable.",
+      "Correct amount validation errors, then select the displayed Save/Update action.",
+      "Review the returned credit-note number and used amounts before entering any further amount."
+    ],
+    "notes": [
+      "Tax Invoice and Reason are required. At least one credit-note amount must be greater than zero, and the submit handler applies a digits-only pattern to these inputs.",
+      "The handler rejects total credit plus used credit exceeding the invoice amount, taxable credit exceeding its taxable allowance, and zero-rated credit exceeding its zero-rated allowance.",
+      "After saving, the handler clears the editable amount fields to zero to avoid posting the same amount repeatedly, and switches a newly added note to edit mode.",
+      "Disabled invoice/context totals are informational; do not attempt to edit those as if they were credit amounts."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/invoice/invoice-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/invoice/credit-note/credit-note-add/credit-note-add.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/credit-note/credit-note-form/credit-note-form.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/credit-note/credit-note-form/credit-note-form.component.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/InvoiceController.cs"
+    ]
+  },
+  {
+    "id": "claims-invoice-credit-note-verify-post",
+    "title": "Verify a credit note, post it to ZATCA, or print it",
+    "area": "Invoices",
+    "routes": ["/invoice/credit-note-add", "/invoice/creditnote-master"],
+    "keywords": ["credit note", "Verify", "Post To ZATCA", "View & Print", "verified credit note"],
+    "prerequisites": ["Load a saved credit note and review its current status and amounts."],
+    "steps": [
+      "Select Verify when enabled and review the returned verification result.",
+      "After verification enables posting, select Post To ZATCA and read the returned success or failure details.",
+      "Use View & Print when a tax invoice is selected to open the printable view.",
+      "Return to the list to inspect the updated record rather than treating a click alone as proof of posting."
+    ],
+    "notes": [
+      "Verification disables further editing in the component and enables the posting action; posted notes disable Save, Verify, and further posting through the component state flags.",
+      "Post To ZATCA has its own backend request and IsSuccess handling. External acceptance must come from the returned result, not the existence of the button.",
+      "View & Print is disabled when no tax invoice is selected."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/invoice/credit-note/credit-note-form/credit-note-form.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/credit-note/credit-note-form/credit-note-form.component.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/InvoiceController.cs",
+      "Cyclus.Claim/Zyklus.Claim.Services/Repository/InvoiceService.cs"
+    ]
+  },
+  {
+    "id": "claims-invoice-credit-note-search-delete",
+    "title": "Search and delete an eligible credit note",
+    "area": "Invoices",
+    "routes": ["/invoice/creditnote-master"],
+    "keywords": ["Search Credit Notes", "Tax Invoice No", "Credit Note From", "Credit Note To", "delete credit note"],
+    "prerequisites": ["Be signed in and have the invoice number or period for the desired credit note."],
+    "steps": [
+      "On Search Credit Notes, choose Facility and Payer as needed, set Credit Note From and Credit Note To, and optionally enter Tax Invoice No.",
+      "Search, then expand the required row or use its view action to inspect the credit note.",
+      "For an eligible note, select its delete control and confirm only after checking the displayed invoice context.",
+      "Use Reset when beginning a different search."
+    ],
+    "notes": [
+      "Both date controls are required, and Tax Invoice No accepts digits only.",
+      "The delete rule permits only Hold credit notes that have not been posted to ZATCA. Posted or non-Hold notes are not eligible for this delete action.",
+      "The confirmation text refers to an Invoice even though the handler deletes a credit note; check the selected row carefully."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/components/invoice/credit-note/credit-note-master/credit-note-master.component.html",
+      "cyclus-claim-ui/src/app/components/invoice/credit-note/credit-note-master/credit-note-master.component.ts",
+      "Cyclus.Claim/Zyklus.Claim.API/Controllers/InvoiceController.cs"
+    ]
+  },
+  {
+    "id": "claims-report-viewer",
+    "title": "Open the report viewer route",
+    "area": "Claims",
+    "routes": ["/window-modals/report-viewer"],
+    "keywords": ["report viewer", "window modal", "claim report"],
+    "prerequisites": ["Open this route from the application flow that supplies report data."],
+    "steps": [
+      "Use the existing application action that launches the report viewer; the component reads report context from window.opener.report or from its report input.",
+      "Complete the report filters presented by the report definition, then request the report through its form.",
+      "Review the rendered report and use the offered download or favorite control when available."
+    ],
+    "notes": [
+      "The viewer is mounted under a separate window layout and depends on a supplied report definition/context. A bare URL does not supply that context.",
+      "The onSubmit handler emits download/favorite requests to its parent, while ordinary viewing renders the configured Stimulsoft report. Actual filter names are driven by the selected report, not this route."
+    ],
+    "sources": [
+      "cyclus-claim-ui/src/app/app-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/window-modals/window-modals-routing.module.ts",
+      "cyclus-claim-ui/src/app/components/window-modals/report-viewer/report-viewer.component.html",
+      "cyclus-claim-ui/src/app/components/window-modals/report-viewer/report-viewer.component.ts"
+    ]
+  }
+]

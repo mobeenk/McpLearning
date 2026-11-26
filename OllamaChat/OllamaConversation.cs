@@ -1,3 +1,4 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -5,7 +6,7 @@ using ModelContextProtocol.Client;
 using ModelContextProtocol.Protocol;
 
 internal sealed class OllamaConversation(
-    HttpClient http, McpClient mcp, IList<McpClientTool> tools, string model)
+    HttpClient http, McpClient mcp, IList<McpClientTool> tools, string model, OllamaSettings settings)
 {
     private readonly List<OllamaMessage> messages = [];
     private readonly OllamaTool[] ollamaTools = tools.Select(tool =>
@@ -15,6 +16,9 @@ internal sealed class OllamaConversation(
 
     public async Task CheckModelAsync(CancellationToken cancellationToken)
     {
+        if (settings.Provider == "OpenAI")
+            return;
+
         using var response = await http.PostAsJsonAsync("api/show", new { model }, cancellationToken);
         await EnsureSuccessAsync(response, cancellationToken);
         using var data = await JsonDocument.ParseAsync(
@@ -49,36 +53,24 @@ internal sealed class OllamaConversation(
         // The model requests calls; this host executes them through MCP and returns the results.
         for (var round = 0; round < 6; round++)
         {
-            Console.WriteLine("[Ollama] Sending conversation and discovered tool schemas...");
-            using var response = await http.PostAsJsonAsync("api/chat", new
-            {
-                model,
-                messages,
-                tools = ollamaTools,
-                stream = false,
-                options = new { temperature = 0, num_predict = 512 }
-            }, cancellationToken);
-            await EnsureSuccessAsync(response, cancellationToken);
-            var reply = await response.Content.ReadFromJsonAsync<OllamaReply>(cancellationToken)
-                ?? throw new InvalidOperationException("Ollama returned an empty response.");
-            var message = reply.Message
-                ?? throw new InvalidOperationException("Ollama response is missing its assistant message.");
+            Console.WriteLine($"[{settings.Provider}] Sending conversation and discovered tool schemas...");
+            var message = await SendChatAsync(cancellationToken);
             if (message.Role != "assistant")
-                throw new InvalidOperationException($"Unexpected Ollama message role: {message.Role}");
+                throw new InvalidOperationException($"Unexpected {settings.Provider} message role: {message.Role}");
             messages.Add(message);
 
             if (message.ToolCalls is not { Count: > 0 })
             {
                 if (string.IsNullOrWhiteSpace(message.Content))
-                    throw new InvalidOperationException("Ollama returned neither an answer nor a tool call.");
-                Console.WriteLine("[Ollama] Answered without requesting another tool.");
+                    throw new InvalidOperationException($"{settings.Provider} returned neither an answer nor a tool call.");
+                Console.WriteLine($"[{settings.Provider}] Answered without requesting another tool.");
                 Console.WriteLine($"Assistant> {message.Content}\n");
                 return;
             }
 
             foreach (var call in message.ToolCalls)
             {
-                Console.WriteLine($"[Ollama -> host] Tool requested: {call.Function.Name} {JsonSerializer.Serialize(call.Function.Arguments)}");
+                Console.WriteLine($"[{settings.Provider} -> host] Tool requested: {call.Function.Name} {JsonSerializer.Serialize(call.Function.Arguments)}");
                 string resultText;
                 if (!tools.Any(tool => tool.Name == call.Function.Name))
                 {
@@ -109,13 +101,67 @@ internal sealed class OllamaConversation(
                     Console.WriteLine($"[MCP server -> host] {resultText}");
                 }
 
-                messages.Add(new OllamaMessage("tool", resultText) { ToolName = call.Function.Name });
-                Console.WriteLine("[Host -> Ollama] Added tool result to the conversation.");
+                messages.Add(new OllamaMessage("tool", resultText) { ToolName = call.Function.Name, ToolCallId = call.Id });
+                Console.WriteLine($"[Host -> {settings.Provider}] Added tool result to the conversation.");
             }
         }
 
         throw new InvalidOperationException("Stopped after six model requests to prevent an endless tool loop. Restart and try a simpler prompt.");
     }
+
+    private async Task<OllamaMessage> SendChatAsync(CancellationToken cancellationToken)
+    {
+        if (settings.Provider == "Ollama")
+        {
+            using var response = await http.PostAsJsonAsync("api/chat", new
+            {
+                model,
+                messages,
+                tools = ollamaTools,
+                stream = false,
+                options = new { temperature = settings.Temperature, num_predict = settings.NumPredict }
+            }, cancellationToken);
+            await EnsureSuccessAsync(response, cancellationToken);
+            var reply = await response.Content.ReadFromJsonAsync<OllamaReply>(cancellationToken)
+                ?? throw new InvalidOperationException("Ollama returned an empty response.");
+            return reply.Message ?? throw new InvalidOperationException("Ollama response is missing its assistant message.");
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, settings.Endpoint);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", settings.ApiKey);
+        request.Content = JsonContent.Create(new
+        {
+            model,
+            messages = messages.Select(ToOpenAiMessage),
+            tools = ollamaTools,
+            stream = false,
+            temperature = settings.Temperature,
+            max_tokens = settings.NumPredict
+        });
+        using var openAiResponse = await http.SendAsync(request, cancellationToken);
+        if (!openAiResponse.IsSuccessStatusCode)
+            throw new HttpRequestException($"OpenAI-compatible endpoint returned HTTP {(int)openAiResponse.StatusCode} ({openAiResponse.ReasonPhrase}).");
+        var completion = await openAiResponse.Content.ReadFromJsonAsync<OpenAiReply>(cancellationToken)
+            ?? throw new InvalidOperationException("OpenAI-compatible endpoint returned an empty response.");
+        var message = completion.Choices?.FirstOrDefault()?.Message
+            ?? throw new InvalidOperationException("OpenAI-compatible response is missing its assistant message.");
+        var calls = message.ToolCalls?.Select(call =>
+        {
+            if (string.IsNullOrWhiteSpace(call.Id) || call.Type != "function" || call.Function is null
+                || string.IsNullOrWhiteSpace(call.Function.Name) || string.IsNullOrWhiteSpace(call.Function.Arguments))
+                throw new InvalidOperationException("OpenAI-compatible response contains an invalid tool call.");
+            var arguments = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(call.Function.Arguments)
+                ?? throw new InvalidOperationException("Tool call arguments must be a JSON object.");
+            return new OllamaToolCall(new OllamaFunctionCall(call.Function.Name, arguments)) { Id = call.Id };
+        }).ToList();
+        return new OllamaMessage(message.Role ?? "", message.Content) { ToolCalls = calls };
+    }
+
+    private static OpenAiMessage ToOpenAiMessage(OllamaMessage message) => new(
+        message.Role, message.Content,
+        message.ToolCalls?.Select(call => new OpenAiToolCall(call.Id, "function",
+            new OpenAiFunction(call.Function.Name, JsonSerializer.Serialize(call.Function.Arguments)))).ToList(),
+        message.ToolCallId);
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
@@ -134,7 +180,7 @@ internal sealed record OllamaTool(
 internal sealed record ToolDefinition(string Name, string Description, JsonElement Parameters);
 internal sealed record OllamaReply(OllamaMessage? Message);
 
-internal sealed record OllamaMessage(string Role, string Content)
+internal sealed record OllamaMessage(string Role, string? Content)
 {
     [JsonPropertyName("tool_calls")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -143,7 +189,22 @@ internal sealed record OllamaMessage(string Role, string Content)
     [JsonPropertyName("tool_name")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? ToolName { get; init; }
+
+    [JsonIgnore]
+    public string? ToolCallId { get; init; }
 }
 
-internal sealed record OllamaToolCall(OllamaFunctionCall Function);
+internal sealed record OllamaToolCall(OllamaFunctionCall Function)
+{
+    [JsonIgnore]
+    public string? Id { get; init; }
+}
 internal sealed record OllamaFunctionCall(string Name, Dictionary<string, JsonElement> Arguments);
+
+internal sealed record OpenAiReply(List<OpenAiChoice>? Choices);
+internal sealed record OpenAiChoice(OpenAiMessage? Message);
+internal sealed record OpenAiMessage(string? Role, string? Content,
+    [property: JsonPropertyName("tool_calls"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] List<OpenAiToolCall>? ToolCalls,
+    [property: JsonPropertyName("tool_call_id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? ToolCallId);
+internal sealed record OpenAiToolCall(string? Id, string? Type, OpenAiFunction? Function);
+internal sealed record OpenAiFunction(string? Name, string? Arguments);

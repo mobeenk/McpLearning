@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="LLMChat.Api/LLMChat.Api.csproj" />
   <Project Path="McpServer/McpServer.csproj" />
   <Project Path="OllamaChat/OllamaChat.csproj" />
 </Solution>

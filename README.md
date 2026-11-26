@@ -3,9 +3,9 @@
 Two small .NET 10 console projects, using the official MCP C# SDK:
 
 - **McpServer** provides `add_numbers`, `get_store_hours`, and `search_web`.
-- **OllamaChat** is the host application. It contains an MCP client and talks to your local Ollama model.
+- **OllamaChat** is the host application. It contains an MCP client and talks to Ollama or an OpenAI-compatible chat-completions service.
 
-No API key, cloud LLM, database, or frontend is needed.
+The default local configuration needs no API key or cloud LLM. No database or frontend is needed.
 The default model is `mcp-learning-llama3.2`, a separate local configuration
 that reuses your already-installed `llama3.2:3b` weights.
 NuGet packages require internet during the initial restore. The model runs locally,
@@ -24,8 +24,8 @@ dotnet exec --runtimeconfig .\McpServer\bin\Debug\net10.0\McpServer.runtimeconfi
 dotnet run --project .\OllamaChat
 ```
 
-Ollama must be running at `http://localhost:11434`. If it is not running, start
-the Ollama desktop app, or run `ollama serve` in another terminal.
+By default, Ollama must be running at `http://localhost:11434`. If it is not
+running, start the Ollama desktop app, or run `ollama serve` in another terminal.
 The client automatically starts and stops the MCP server subprocess.
 Do not run the server manually for this demo.
 The `ollama create` command only needs running once, or after editing the
@@ -56,13 +56,38 @@ Commands: `/tools` shows the schemas, `/reset` clears conversation history,
 and `/exit` exits. Ctrl+C cancels. Use `/reset` when comparing prompts independently;
 the model can answer from a tool result already present in the conversation.
 
-One-shot mode and model selection:
+### LLM settings
+
+To customize settings, copy `OllamaChat\appsettings.example.json` to
+`OllamaChat\appsettings.json` and edit the copy. Without the copy, the example
+provides the default local Ollama configuration. Set `provider` to `Ollama` or
+`OpenAI`; only the selected section is used. Ollama uses `endpoint`, `model`,
+`timeoutSeconds`, `temperature`, and `numPredict` (maximum generated tokens).
+
+For an OpenAI-compatible service, set `provider` to `OpenAI` and fill in the
+`OpenAI` section. Its `endpoint` is the full HTTPS chat-completions URL;
+`apiKey` is sent as `Authorization: Bearer <key>`, and `maxTokens` is sent as
+`max_tokens`. The model and service must support OpenAI-compatible tool calls.
+
+`appsettings.json` is ignored by Git to reduce accidental commits of your key,
+but the key remains plaintext on disk and is copied into build and publish
+outputs. Restrict access to those files and never share or commit them. The
+remote provider receives conversation history, tool schemas, and tool results.
+
+The selected settings file is copied to the build output; the application loads
+that copy relative to its executable, regardless of the working directory.
+Rebuild after changing source settings. Invalid or missing selected settings
+cause a startup error. `--self-test` uses mock LLM responses and does not require
+the settings file or a running LLM.
+
+One-shot mode and a temporary model override:
 
 ```powershell
 dotnet run --project .\OllamaChat -- --prompt 'What is 17 plus 25?'
 dotnet run --project .\OllamaChat -- --model 'mcp-learning-llama3.2'
 ```
 
+`--model` overrides the model in the settings file for that run.
 Do not select an embedding-only model or a model without tool support.
 You can also try `--model 'llama3.2:3b'` to observe the stock template's
 unnecessary tool calls. Small local models can sometimes choose the wrong tool or skip one. Tool
@@ -80,14 +105,14 @@ OllamaChat (host)
      |-- MCP client -- stdio / JSON-RPC --> McpServer
      |             initialize + tools/list <-- tool descriptions and schemas
      |
-     |-- HTTP /api/chat --> Ollama model
+     |-- HTTP /api/chat or /v1/chat/completions --> LLM
      |   Sends conversation + discovered tool schemas
      |<-- Either an ordinary answer OR structured tool_calls
      |
      |   If the model requests a tool:
      |-- MCP client -- tools/call --> McpServer executes C# method
      |<-- Tool result
-     |-- HTTP /api/chat --> Ollama (conversation now includes tool result)
+     |-- HTTP chat request --> LLM (conversation now includes tool result)
      |<-- Final answer
      v
 Answer displayed
@@ -101,9 +126,9 @@ demo tools, including sending search phrases to Bing without further approval.
 A real host should apply appropriate permissions and ask for
 approval for sensitive or destructive tools.
 
-MCP standardizes discovery and invocation between client and server. Ollama's
+MCP standardizes discovery and invocation between client and server. The LLM
 HTTP API is a separate connection, not the MCP transport. This demo translates
-MCP tool schemas into Ollama tool definitions in plain C# so the bridge is visible.
+MCP tool schemas and results into the selected provider's format in plain C#.
 MCP also supports resources and reusable prompt templates; we intentionally
 focus on tools. Your chat prompt is not an MCP prompt template.
 
@@ -116,7 +141,7 @@ focus on tools. Your chat prompt is not an MCP prompt template.
 3. [OllamaChat/Program.cs](OllamaChat/Program.cs): launch the server, discover tools,
    and accept prompts.
 4. [OllamaChat/OllamaConversation.cs](OllamaChat/OllamaConversation.cs): send schemas
-   to Ollama, inspect `tool_calls`, invoke MCP, append results, and ask again.
+   to the configured provider, inspect `tool_calls`, invoke MCP, append results, and ask again.
    The loop is limited to six model requests to prevent endless calls.
 5. [OllamaChat/SelfTest.cs](OllamaChat/SelfTest.cs): exercise the actual MCP connection
    independently of the model.
@@ -135,8 +160,9 @@ dotnet run --project .\OllamaChat -- --prompt 'Search the web for Kubernetes and
 dotnet run --project .\OllamaChat -- --prompt 'Say hello in one sentence.'
 ```
 
-The self-test requires no Ollama. It checks discovery, argument schemas, real
-tool calls, negative/decimal addition, store data, and invalid argument errors.
+The self-test requires no LLM service. It checks provider requests with mocked
+HTTP responses, discovery, argument schemas, real MCP tool calls,
+negative/decimal addition, store data, and invalid argument errors.
 It does not contact Bing; the search prompt above is a separate live check.
 The search uses a hidden browser and returns search result snippets, not full
 web pages. Bing may block automated searches, require consent or a CAPTCHA,
