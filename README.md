@@ -2,10 +2,10 @@
 
 Two small .NET 10 console projects, using the official MCP C# SDK:
 
-- **McpServer** provides `add_numbers`, `get_store_hours`, and `search_web`.
+- **McpServer** provides `add_numbers`, `get_store_hours`, `search_web`, `list_database_tables`, and `query_database`.
 - **OllamaChat** is the host application. It contains an MCP client and talks to Ollama or an OpenAI-compatible chat-completions service.
 
-The default local configuration needs no API key or cloud LLM. No database or frontend is needed.
+The default local configuration needs no API key or cloud LLM. A database is optional and only needed for the Northwind tools; no frontend is needed.
 The default model is `mcp-learning-llama3.2`, a separate local configuration
 that reuses your already-installed `llama3.2:3b` weights.
 NuGet packages require internet during the initial restore. The model runs locally,
@@ -95,6 +95,65 @@ descriptions and the system prompt guide them; MCP itself does not decide.
 This application deliberately does not use keyword matching or pretend that
 plain text resembling a function call is a real tool call.
 
+## Northwind LocalDB tools (Windows)
+
+The tools connect to `(localdb)\MSSQLLocalDB`, database `Northwind`, with Windows
+Authentication. Other tools still work when Northwind is not installed.
+
+For a **new** Northwind database, download Microsoft's sample script to a temporary
+file, then run these commands from the repository root. Do not run the sample
+script against an existing database: it drops and recreates sample objects.
+
+```powershell
+sqllocaldb start MSSQLLocalDB
+$sample = Join-Path $env:TEMP 'mcp-instnwnd.sql'
+Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/sql-server-samples/master/samples/databases/northwind-pubs/instnwnd.sql' -OutFile $sample
+sqlcmd -S '(localdb)\MSSQLLocalDB' -E -b -Q "IF DB_ID(N'Northwind') IS NOT NULL THROW 50000, 'Northwind already exists; stop and review it.', 1; ELSE CREATE DATABASE [Northwind];"
+# Continue only if database creation succeeded.
+if ($LASTEXITCODE -eq 0) { sqlcmd -S '(localdb)\MSSQLLocalDB' -E -b -d Northwind -i $sample }
+Remove-Item -LiteralPath $sample
+```
+
+Once Northwind is populated, configure the restricted database user:
+
+```powershell
+sqlcmd -S '(localdb)\MSSQLLocalDB' -E -b -i .\McpServer\Sql\ConfigureNorthwindReader.sql
+dotnet run --project .\OllamaChat
+```
+
+If using the demo Ollama model, refresh its updated tool-chaining template once
+with `ollama create mcp-learning-llama3.2 -f .\Modelfile`, then restart the chat.
+This step is not needed for an OpenAI-compatible provider.
+
+The setup deliberately fails if `McpNorthwindReader` already exists; do not grant
+that user extra permissions or add it to database roles. Each tool connection
+impersonates this loginless user with `NO REVERT`, disables pooling, and can only
+read the `dbo` schema in Northwind. The owner connection is used only to establish
+the restricted execution context, never to execute the model's query.
+
+`list_database_tables` returns columns, types, nullability and primary keys.
+`query_database` parses SQL and accepts exactly one SELECT (including CTEs),
+rejecting writes, SELECT INTO, variable assignment and stacked statements.
+Queries have a 15-second command timeout, return 20 rows by default (maximum 100),
+and allow at most 32 columns. Text values are capped at 500 characters, binary/XML
+values are omitted, and row data is limited to 32,000 serialized characters.
+The JSON response reports `columns`, positional `rows`, `rowCount`, `truncated`
+and `valuesTruncated`; a truncated result is not the complete answer.
+
+Try: "List the Northwind tables", "How many customers are in Northwind?", or
+"Show the five most expensive Northwind products". Schema discovery followed by
+a query needs two model tool rounds; model tool selection is not guaranteed.
+
+Database input-validation checks run in the normal self-test without SQL Server.
+To also verify live schema discovery, sample counts, joins, limits and denied
+operations (no LLM or web requests), run:
+
+```powershell
+$env:MCP_TEST_NORTHWIND = '1'
+dotnet run --project .\OllamaChat -- --self-test
+Remove-Item Env:\MCP_TEST_NORTHWIND
+```
+
 ## What actually happens?
 
 ```text
@@ -121,8 +180,10 @@ Answer displayed
 **Important:** The LLM does not directly connect to MCP or execute C#.
 It proposes a structured tool call with a name and arguments. The **host**
 validates the tool name, executes the request through its **MCP client**, then
-gives the result back to the LLM. Here, the host automatically permits all three
-demo tools, including sending search phrases to Bing without further approval.
+gives the result back to the LLM. Here, the host automatically permits all five
+demo tools, including sending search phrases to Bing and reading Northwind without further approval.
+Database results are sent to the selected LLM provider and printed in local logs;
+use only sample data, not confidential databases.
 A real host should apply appropriate permissions and ask for
 approval for sensitive or destructive tools.
 

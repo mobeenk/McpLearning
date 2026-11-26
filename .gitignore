@@ -2,4 +2,4 @@
 **/obj/
 .vs/
 *.user
-OllamaChat/appsettings.json
+appsettings.json

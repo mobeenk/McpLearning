@@ -63,7 +63,7 @@ internal static class SelfTest
             """);
 
         Require(tools.Select(tool => tool.Name).Order().SequenceEqual(
-            new[] { "add_numbers", "get_store_hours", "search_web" }), "MCP discovers all expected tools.");
+            new[] { "add_numbers", "get_store_hours", "list_database_tables", "query_database", "search_web" }), "MCP discovers all expected tools.");
         var schema = tools.Single(tool => tool.Name == "add_numbers").JsonSchema;
         Require(schema.GetProperty("properties").TryGetProperty("a", out _)
             && schema.GetProperty("properties").TryGetProperty("b", out _),
@@ -103,6 +103,7 @@ internal static class SelfTest
             new Dictionary<string, object?> { ["query"] = new string('a', 201) },
             cancellationToken: cancellationToken);
         Require(longSearch.IsError == true, "An excessively long web search query returns an explicit MCP error.");
+        await DatabaseSelfTest.RunAsync(mcp, tools, cancellationToken);
         Console.WriteLine("\nPASS: MCP discovery, schemas, tool execution, and invalid-input handling. Ollama was not needed.");
     }
 
