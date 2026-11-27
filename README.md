@@ -2,10 +2,10 @@
 
 Two small .NET 10 console projects, using the official MCP C# SDK:
 
-- **McpServer** provides `add_numbers`, `get_store_hours`, `search_web`, and `find_northwind_products`.
-- **OllamaChat** is the host application. It contains an MCP client and talks to your local Ollama model.
+- **McpServer** provides `add_numbers`, `get_store_hours`, `search_web`, `list_database_tables`, and `query_database`.
+- **OllamaChat** is the host application. It contains an MCP client and talks to Ollama or an OpenAI-compatible chat-completions service.
 
-No API key, cloud LLM, or frontend is needed. A database is only needed for the Northwind tool.
+The default local configuration needs no API key or cloud LLM. A database is optional and only needed for the Northwind tools; no frontend is needed.
 The default model is `mcp-learning-llama3.2`, a separate local configuration
 that reuses your already-installed `llama3.2:3b` weights.
 NuGet packages require internet during the initial restore. The model runs locally,
@@ -24,8 +24,8 @@ dotnet exec --runtimeconfig .\McpServer\bin\Debug\net10.0\McpServer.runtimeconfi
 dotnet run --project .\OllamaChat
 ```
 
-Ollama must be running at `http://localhost:11434`. If it is not running, start
-the Ollama desktop app, or run `ollama serve` in another terminal.
+By default, Ollama must be running at `http://localhost:11434`. If it is not
+running, start the Ollama desktop app, or run `ollama serve` in another terminal.
 The client automatically starts and stops the MCP server subprocess.
 Do not run the server manually for this demo.
 The `ollama create` command only needs running once, or after editing the
@@ -48,8 +48,7 @@ Try these prompts:
 | --- | --- |
 | `What is 17 plus 25?` | Model requests `add_numbers`; answer is 42. |
 | `When does Learning Bookshop open on Saturday?` | Model requests `get_store_hours`; answer uses fictional demo hours. |
-| `In the Northwind database, what is the unit price of Chai and how many units are in stock?` | Model requests `find_northwind_products`; the answer uses the local database. |
-| `Search the web for 2026 gold price` | The host calls `search_web` directly and displays Bing snippets and links. |
+| `Search the web for Kubernetes and tell me what it is.` | Model can request `search_web` and answer using search snippets and links. |
 | `Say hello in one sentence.` | Model answers directly; no tool call. |
 | `What is MCP? Explain simply.` | Model answers from its knowledge; no tool needed. |
 
@@ -57,22 +56,103 @@ Commands: `/tools` shows the schemas, `/reset` clears conversation history,
 and `/exit` exits. Ctrl+C cancels. Use `/reset` when comparing prompts independently;
 the model can answer from a tool result already present in the conversation.
 
-One-shot mode and model selection:
+### LLM settings
+
+To customize settings, copy `OllamaChat\appsettings.example.json` to
+`OllamaChat\appsettings.json` and edit the copy. Without the copy, the example
+provides the default local Ollama configuration. Set `provider` to `Ollama` or
+`OpenAI`; only the selected section is used. Ollama uses `endpoint`, `model`,
+`timeoutSeconds`, `temperature`, and `numPredict` (maximum generated tokens).
+
+For an OpenAI-compatible service, set `provider` to `OpenAI` and fill in the
+`OpenAI` section. Its `endpoint` is the full HTTPS chat-completions URL;
+`apiKey` is sent as `Authorization: Bearer <key>`, and `maxTokens` is sent as
+`max_tokens`. The model and service must support OpenAI-compatible tool calls.
+
+`appsettings.json` is ignored by Git to reduce accidental commits of your key,
+but the key remains plaintext on disk and is copied into build and publish
+outputs. Restrict access to those files and never share or commit them. The
+remote provider receives conversation history, tool schemas, and tool results.
+
+The selected settings file is copied to the build output; the application loads
+that copy relative to its executable, regardless of the working directory.
+Rebuild after changing source settings. Invalid or missing selected settings
+cause a startup error. `--self-test` uses mock LLM responses and does not require
+the settings file or a running LLM.
+
+One-shot mode and a temporary model override:
 
 ```powershell
 dotnet run --project .\OllamaChat -- --prompt 'What is 17 plus 25?'
 dotnet run --project .\OllamaChat -- --model 'mcp-learning-llama3.2'
 ```
 
+`--model` overrides the model in the settings file for that run.
 Do not select an embedding-only model or a model without tool support.
 You can also try `--model 'llama3.2:3b'` to observe the stock template's
 unnecessary tool calls. Small local models can sometimes choose the wrong tool or skip one. Tool
 descriptions and the system prompt guide them; MCP itself does not decide.
-For explicit commands beginning with `search the web for` (optionally preceded
-by `yes` or `please`), the host calls the MCP search tool directly and shows
-Bing's results without asking the model to summarize. The text after `for` is
-the query; a leading year is moved after the topic for better search relevance.
-For other prompts, Ollama decides whether to request a tool.
+This application deliberately does not use keyword matching or pretend that
+plain text resembling a function call is a real tool call.
+
+## Northwind LocalDB tools (Windows)
+
+The tools connect to `(localdb)\MSSQLLocalDB`, database `Northwind`, with Windows
+Authentication. Other tools still work when Northwind is not installed.
+
+For a **new** Northwind database, download Microsoft's sample script to a temporary
+file, then run these commands from the repository root. Do not run the sample
+script against an existing database: it drops and recreates sample objects.
+
+```powershell
+sqllocaldb start MSSQLLocalDB
+$sample = Join-Path $env:TEMP 'mcp-instnwnd.sql'
+Invoke-WebRequest 'https://raw.githubusercontent.com/microsoft/sql-server-samples/master/samples/databases/northwind-pubs/instnwnd.sql' -OutFile $sample
+sqlcmd -S '(localdb)\MSSQLLocalDB' -E -b -Q "IF DB_ID(N'Northwind') IS NOT NULL THROW 50000, 'Northwind already exists; stop and review it.', 1; ELSE CREATE DATABASE [Northwind];"
+# Continue only if database creation succeeded.
+if ($LASTEXITCODE -eq 0) { sqlcmd -S '(localdb)\MSSQLLocalDB' -E -b -d Northwind -i $sample }
+Remove-Item -LiteralPath $sample
+```
+
+Once Northwind is populated, configure the restricted database user:
+
+```powershell
+sqlcmd -S '(localdb)\MSSQLLocalDB' -E -b -i .\McpServer\Sql\ConfigureNorthwindReader.sql
+dotnet run --project .\OllamaChat
+```
+
+If using the demo Ollama model, refresh its updated tool-chaining template once
+with `ollama create mcp-learning-llama3.2 -f .\Modelfile`, then restart the chat.
+This step is not needed for an OpenAI-compatible provider.
+
+The setup deliberately fails if `McpNorthwindReader` already exists; do not grant
+that user extra permissions or add it to database roles. Each tool connection
+impersonates this loginless user with `NO REVERT`, disables pooling, and can only
+read the `dbo` schema in Northwind. The owner connection is used only to establish
+the restricted execution context, never to execute the model's query.
+
+`list_database_tables` returns columns, types, nullability and primary keys.
+`query_database` parses SQL and accepts exactly one SELECT (including CTEs),
+rejecting writes, SELECT INTO, variable assignment and stacked statements.
+Queries have a 15-second command timeout, return 20 rows by default (maximum 100),
+and allow at most 32 columns. Text values are capped at 500 characters, binary/XML
+values are omitted, and row data is limited to 32,000 serialized characters.
+The JSON response reports `columns`, positional `rows`, `rowCount`, `truncated`
+and `valuesTruncated`; a truncated result is not the complete answer.
+
+Try: "List the Northwind tables", "How many customers are in Northwind?", or
+"Show the five most expensive Northwind products". Schema discovery followed by
+a query needs two model tool rounds; model tool selection is not guaranteed.
+
+Database input-validation checks run in the normal self-test without SQL Server.
+To also verify live schema discovery, sample counts, joins, limits and denied
+operations (no LLM or web requests), run:
+
+```powershell
+$env:MCP_TEST_NORTHWIND = '1'
+dotnet run --project .\OllamaChat -- --self-test
+Remove-Item Env:\MCP_TEST_NORTHWIND
+```
 
 ## What actually happens?
 
@@ -84,14 +164,14 @@ OllamaChat (host)
      |-- MCP client -- stdio / JSON-RPC --> McpServer
      |             initialize + tools/list <-- tool descriptions and schemas
      |
-     |-- HTTP /api/chat --> Ollama model
+     |-- HTTP /api/chat or /v1/chat/completions --> LLM
      |   Sends conversation + discovered tool schemas
      |<-- Either an ordinary answer OR structured tool_calls
      |
      |   If the model requests a tool:
      |-- MCP client -- tools/call --> McpServer executes C# method
      |<-- Tool result
-     |-- HTTP /api/chat --> Ollama (conversation now includes tool result)
+     |-- HTTP chat request --> LLM (conversation now includes tool result)
      |<-- Final answer
      v
 Answer displayed
@@ -100,14 +180,16 @@ Answer displayed
 **Important:** The LLM does not directly connect to MCP or execute C#.
 It proposes a structured tool call with a name and arguments. The **host**
 validates the tool name, executes the request through its **MCP client**, then
-gives the result back to the LLM. Here, the host automatically permits all four
-demo tools, including sending search phrases to Bing without further approval.
+gives the result back to the LLM. Here, the host automatically permits all five
+demo tools, including sending search phrases to Bing and reading Northwind without further approval.
+Database results are sent to the selected LLM provider and printed in local logs;
+use only sample data, not confidential databases.
 A real host should apply appropriate permissions and ask for
 approval for sensitive or destructive tools.
 
-MCP standardizes discovery and invocation between client and server. Ollama's
+MCP standardizes discovery and invocation between client and server. The LLM
 HTTP API is a separate connection, not the MCP transport. This demo translates
-MCP tool schemas into Ollama tool definitions in plain C# so the bridge is visible.
+MCP tool schemas and results into the selected provider's format in plain C#.
 MCP also supports resources and reusable prompt templates; we intentionally
 focus on tools. Your chat prompt is not an MCP prompt template.
 
@@ -120,7 +202,7 @@ focus on tools. Your chat prompt is not an MCP prompt template.
 3. [OllamaChat/Program.cs](OllamaChat/Program.cs): launch the server, discover tools,
    and accept prompts.
 4. [OllamaChat/OllamaConversation.cs](OllamaChat/OllamaConversation.cs): send schemas
-   to Ollama, inspect `tool_calls`, invoke MCP, append results, and ask again.
+   to the configured provider, inspect `tool_calls`, invoke MCP, append results, and ask again.
    The loop is limited to six model requests to prevent endless calls.
 5. [OllamaChat/SelfTest.cs](OllamaChat/SelfTest.cs): exercise the actual MCP connection
    independently of the model.
@@ -129,29 +211,20 @@ The client locates the server's build output relative to its own build output,
 using the same Debug/Release configuration. Keep the solution's folder layout;
 this is a learning project, not a standalone published application.
 
-## Northwind product lookup
-
-[NorthwindTools.cs](McpServer/NorthwindTools.cs) connects to a database named
-`Northwind` on `(localdb)\MSSQLLocalDB` using the Windows account that starts the
-chat. No username or password is needed. The database must already be attached,
-and the account must be able to read `dbo.Products`. The tool runs a fixed
-`SELECT` with the product name as a parameter; it cannot run model-generated SQL
-or modify the database. It returns at most five matches.
-
 ## Verify
 
 ```powershell
 dotnet run --project .\OllamaChat -- --self-test
 dotnet run --project .\OllamaChat -- --prompt 'What is 17 plus 25?'
-dotnet run --project .\OllamaChat -- --prompt 'In the Northwind database, what is the unit price of Chai and how many units are in stock?'
 dotnet run --project .\OllamaChat -- --prompt 'When does Learning Bookshop open on Saturday?'
 dotnet run --project .\OllamaChat -- --prompt 'Search the web for Kubernetes and tell me what it is.'
 dotnet run --project .\OllamaChat -- --prompt 'Say hello in one sentence.'
 ```
 
-The self-test requires no Ollama. It checks discovery, argument schemas, real
-tool calls, negative/decimal addition, store data, and invalid argument errors.
-It does not contact Bing or Northwind; those prompts are separate live checks.
+The self-test requires no LLM service. It checks provider requests with mocked
+HTTP responses, discovery, argument schemas, real MCP tool calls,
+negative/decimal addition, store data, and invalid argument errors.
+It does not contact Bing; the search prompt above is a separate live check.
 The search uses a hidden browser and returns search result snippets, not full
 web pages. Bing may block automated searches, require consent or a CAPTCHA,
 or change its results page; these cases produce a tool error. Search results are

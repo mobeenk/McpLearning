@@ -1,0 +1,368 @@
+[
+  {
+    "id": "claims-actions-menu-availability",
+    "title": "Understand the claim-details Action menu and missing actions",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list", "/claim/claim-communication"],
+    "keywords": ["claim details", "action menu", "list all actions", "available actions", "action overview", "missing action", "hidden", "disabled", "permissions", "NPHIES view"],
+    "prerequisites": ["Select an existing claim in a screen hosting claim-details; this component is not a standalone /claim/claim-details route."],
+    "steps": [
+      "Open a claim card in Claim Details List or Medical Details List and select the top Action dropdown.",
+      "Identify whether you are in the internal review view or the NPHIES/submission view; they expose different Action menus.",
+      "For an unavailable action, check the displayed claim status, technical/medical review context, assigned permissions and whether the claim is editable.",
+      "In a read-only rejected-claim popup from Claim Communication, expect response-editing actions to be restricted.",
+      "If an action is still missing, report its exact label, screen and non-sensitive status information to your administrator; do not bypass the menu conditions."
+    ],
+    "notes": [
+      "Internal-view menu inventory, subject to each action's gates: Activity Log; Send Back1; Send Back; Review; Technical Review; Technical Verify; Technical Approve; Technical Error; Technical Reject; Medical Review; Medical Verify; Medical Approve; Medical Error; Medical Reject; Ready To Submit; Validate; Reject Claim; Reject Services; Refetch Medical Info; Claim Status Log; View Submission Status; Cancel Claim; Compress; External Document (or External Document Cleared); Clear External Documents.",
+      "NPHIES-view menu inventory, subject to each action's gates: Denial Response; Error Resolved; Nphies Log viewer (KSA) or Submission viewer (non-KSA); Activity Log; View Response Added; Claim Status Log; View Submission Status; Cancel Claim; Reject Services; External Document (or External Document Cleared); Clear External Documents. Rejected service rows also have their own Denial Response action.",
+      "The internal Action dropdown is hidden for IsNphiesViewMode or status Nphies_Pended, Nphies_Cancelled, InternalProccess, InProgress or UpdateError. These exact status spellings come from the template.",
+      "The NPHIES Action dropdown is shown when IsNphiesViewMode is true and status is not InternalError. The parent-provided claim status determines this mode.",
+      "Review/verify/approve actions also use allowEdit and calculated isDisabled flags based on technical/medical state, current search context and assigned users. A permission alone does not establish availability.",
+      "Send Back1 is the literal legacy menu label and differs from Send Back with Remarks.",
+      "Edit Response, Get Nphies Status, Send Communication and Nullify Claim sit under the contradictory condition Status === 'Submitted' && !Status and have no click handlers. Do not describe them as supported working actions. Use View Submission Status for the implemented status-check path."
+    ],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:130", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:359", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:682", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4807", "cyclus-claim-ui/src/app/components/claim/claim-details-list/claim-details-list.component.html", "cyclus-claim-ui/src/app/components/claim/medical-details-list/medical-details-list.component.html", "cyclus-claim-ui/src/app/components/claim/claim-communication/claim-communication.component.html"]
+  },
+  {
+    "id": "claims-actions-activity-log",
+    "title": "Use Action > Activity Log to inspect claim changes",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Activity Log", "change history", "old value", "new value", "modified by", "audit"],
+    "prerequisites": ["An existing claim with an accessible Action menu; Activity Log is present in both internal and NPHIES menus."],
+    "steps": [
+      "Choose Action > Activity Log on the selected claim.",
+      "Choose Encounter details, Patient Details, Vitalsign Details, Service Details or Diagnosis Details to inspect the corresponding changes.",
+      "Compare Modified Date, Modified By, New Value and Old Value in the selected tab.",
+      "Use History Logs for the separate history entries and close the modal when finished."
+    ],
+    "notes": ["A tab can show There is no changes. This only describes the returned log entries, not proof that the record never changed.", "Activity Log records data changes; Claim Status Log records transitions; Nphies Log viewer shows exchange payloads.", "Do not paste audit values or patient details into AI chat."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:135", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2554", "cyclus-claim-ui/src/app/components/claim/claim-activity-log/claim-activity-log.component.html"]
+  },
+  {
+    "id": "claims-actions-review-ready",
+    "title": "Mark a claim Review or Ready To Submit",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Review", "Reviewed", "Ready To Submit", "ready for submission", "internal review"],
+    "prerequisites": ["The internal Action menu, an editable claim and the corresponding Review or Ready To Submit permission."],
+    "steps": [
+      "Review and save intended claim corrections using the screen's Save control before issuing a separate status action.",
+      "For a Pending claim, select Action > Review when available.",
+      "Check the success or failure notification and the refreshed claim card.",
+      "For a Reviewed claim, select Action > Ready To Submit when available, then check the notification and refreshed status."
+    ],
+    "notes": ["Review and Ready To Submit call distinct internal status actions; they do not themselves submit a bundle to NPHIES.", "The menu handlers do not call Save first. Do not assume unsaved field edits are persisted by a status action.", "Technical Review and Medical Review are separate actions updating their corresponding review tracks."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:155", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:285", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2434", "cyclus-claim-ui/src/app/shared/services/claim.service.ts:380"]
+  },
+  {
+    "id": "claims-actions-technical-medical-review",
+    "title": "Perform Technical Review or Medical Review from claim details",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Technical Review", "Medical Review", "technical reviewed", "medical reviewed", "review track"],
+    "prerequisites": ["An editable claim, the corresponding action permission, and a review action not disabled by assignment/state/search context."],
+    "steps": [
+      "Check whether your work is in the technical or medical review track and save any intended data edits first.",
+      "Choose Action > Technical Review to request Technical_Reviewed, or Action > Medical Review to request Medical_Reviewed.",
+      "Read the Status Updated Successfully notification or the returned informational/error message.",
+      "Check the reloaded claim/card and, if needed, Action > Claim Status Log to verify the recorded transition."
+    ],
+    "notes": ["Technical Review is offered for Pending, or Error with MedicalError true. Medical Review is offered for Pending, or Error with TechnicalError true. Parent menu visibility and edit/disabled gates still apply.", "These handlers submit status code 2 on the selected track. They do not automatically save edited form fields or guarantee the backend accepts a transition.", "The backend endpoints enforce their corresponding Claim List review permissions."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:166", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:234", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2503", "cyclus-claim-ui/src/app/shared/services/claim.service.ts:384", "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimController.cs:1688"]
+  },
+  {
+    "id": "claims-actions-technical-medical-verify",
+    "title": "Use Technical Verify or Medical Verify on a claim",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Technical Verify", "Medical Verify", "technical verified", "medical verified", "confirmed"],
+    "prerequisites": ["KSA mode, Pending claim status, allowEdit, the corresponding Verify permission and an action not disabled by the calculated review context."],
+    "steps": [
+      "Confirm you are verifying the correct technical or medical review track and have saved intended edits.",
+      "Select Action > Technical Verify or Action > Medical Verify as appropriate.",
+      "Check the returned notification and refreshed claim/card before continuing.",
+      "Use Claim Status Log to inspect the resulting transition when needed."
+    ],
+    "notes": ["Both actions submit status code 3 on their respective tracks. UI assignment/state logic can hide the action even if the permission is enabled.", "Claim Status Log renders Technical_Verified as Technical Confirmed and Medical_Verified as Medical Confirmed.", "Verify is not payer approval, NPHIES submission or payment confirmation."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:188", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:249", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2503", "cyclus-claim-ui/src/app/components/claim/claim-time-line/claim-time-line.component.html", "cyclus-claim-ui/src/app/shared/services/claim.service.ts:384", "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimController.cs:1713"]
+  },
+  {
+    "id": "claims-actions-technical-medical-approve",
+    "title": "Use Technical Approve or Medical Approve on a claim",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Technical Approve", "Medical Approve", "technical approved", "medical approved", "approval"],
+    "prerequisites": ["KSA mode, Pending claim status, allowEdit, the corresponding Approve permission and an action not disabled by assignment/state context."],
+    "steps": [
+      "Review the claim in the relevant technical or medical track and save intended field changes separately.",
+      "Select Action > Technical Approve or Action > Medical Approve.",
+      "Check the service notification and reloaded card/status.",
+      "If the service returns an informational message rather than success, resolve the reported requirement instead of assuming approval occurred."
+    ],
+    "notes": ["These actions request status code 4 on the selected internal track.", "Do not assert a mandatory universal Review > Verify > Approve sequence: availability is calculated from permissions, prior-state configuration, assignments and search context.", "Internal approval is not an external insurer approval or a completed submission."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:199", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:258", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2503", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4807", "cyclus-claim-ui/src/app/shared/services/claim.service.ts:384", "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimController.cs:1737"]
+  },
+  {
+    "id": "claims-actions-technical-medical-error",
+    "title": "Understand Technical Error and Medical Error actions and their implementation limitation",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Technical Error", "Medical Error", "mark error", "status error", "not working"],
+    "prerequisites": ["The template exposes these only in KSA mode for Pending claims, with the corresponding permission, allowEdit and disabled-state checks."],
+    "steps": [
+      "Identify whether the issue is technical or medical and inspect the claim's validation/error information.",
+      "The menu labels are Action > Technical Error and Action > Medical Error; their handlers request status code 5 on the corresponding track.",
+      "Check the actual result if your deployment exposes the action. Do not treat selecting the menu item as proof of a persisted status change.",
+      "If the action fails or has no working endpoint, report the exact action and non-sensitive error to support."
+    ],
+    "notes": ["In the reviewed backend, TechnicalStatusError and MedicalStatusError controller actions are commented out, although the frontend service still points to those routes. A working endpoint for these actions is not established by this checkout.", "This is a documented source mismatch, not a workflow fix. Do not advise repeated retries or promise a successful error-state transition."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:209", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:267", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2503", "cyclus-claim-ui/src/app/shared/services/claim.service.ts:384", "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimController.cs"]
+  },
+  {
+    "id": "claims-actions-send-back",
+    "title": "Send a claim back using Send Back1 or Send Back with Remarks",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Send Back1", "Send Back", "remarks", "return to reviewer", "technical sendback", "medical sendback"],
+    "prerequisites": ["KSA mode, an editable claim and the Send Back permission. The two similarly named menu items have different status conditions."],
+    "steps": [
+      "For a Reviewed, Rejected, RejectedByReviewer or ReadyToSubmit claim not already flagged IsReadyForSubmit true, the legacy Action > Send Back1 requests the internal send-back action immediately.",
+      "For a Pending claim in a technical or medical search context whose matching track is no longer Pending, select Action > Send Back.",
+      "In the Send Back modal, enter Remarks and select Confirm, or close the modal to abandon the request.",
+      "Read the result and verify the reloaded claim/card. The remarks flow uses the technical track when a technical search filter is present, otherwise the medical track when its filter is present."
+    ],
+    "notes": ["Send Back1 uses the legacy Reviewed endpoint with action 2 and resets advanced search on success. Send Back with Remarks uses track-specific status 10 and includes the remarks.", "If both technical and medical search filters are present, the handler prioritizes technical. Confirm the intended worklist context before sending back.", "The Remarks textarea is marked required, but Confirm has no explicit form-validity disabling or empty-value guard. Guidance should still require meaningful remarks; do not claim client enforcement that is absent.", "Neither action is an external payer cancellation or an automatic email/message to the reviewer."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:139", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:2647", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2481", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2539", "cyclus-claim-ui/src/app/shared/services/claim.service.ts:384"]
+  },
+  {
+    "id": "claims-actions-reject-claim",
+    "title": "Reject a claim using Technical Reject, Medical Reject or Reject Claim",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Technical Reject", "Medical Reject", "Reject Claim", "Comments/Reason", "manual rejection"],
+    "prerequisites": ["For Technical Reject or Medical Reject: KSA mode, the matching rejection permission and a status allowed by the rejection helper. Generic Reject Claim has separate status/read-only flag conditions."],
+    "steps": [
+      "In the internal Action menu choose Technical Reject or Medical Reject to explicitly select the intended review track.",
+      "In the Reject Claim dialog, enter Comments/Reason. Submit is disabled until this required field is valid.",
+      "Select Submit, or close the dialog to abandon rejection.",
+      "Check the status notification or returned informational/error message and the refreshed claim/card."
+    ],
+    "notes": ["Technical/Medical Reject are excluded for Nphies_Queued, Nphies_Rejected, Nphies_Pended, Nphies_OutCome, Nphies_Cancelled, PendingForNphies, Locked, Nphies_Perror and Nphies_Error, subject to the parent menu visibility.", "Their helper does not impose exactly the same allowEdit/isDisabled checks as Review/Verify/Approve; do not infer identical availability.", "Generic Reject Claim is displayed for Error, Reviewed or Pending only when the component's isReadOnly flag is true. Its click omits the technical/medical argument, while the submit path branches on that flag; the intended rejection track for this generic entry is ambiguous in source. Prefer the explicit track entry and report ambiguity rather than inventing a track.", "Rejection uses status code 6 and required comments. Internal reviewer rejection is different from Cancel Claim, Reject Services or a payer denial response."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:222", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:275", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:300", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:2667", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:872", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:5057", "cyclus-claim-ui/src/app/shared/services/claim.service.ts:384"]
+  },
+  {
+    "id": "claims-actions-validate",
+    "title": "Run Action > Validate on the saved claim",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Validate", "rule engine", "validation errors", "saved claim"],
+    "prerequisites": ["The internal Action menu is visible and the claim status is Error, Reviewed, Pending or UnLocked."],
+    "steps": [
+      "Review the claim and save corrections before validating; this menu action sends the claim ID, not the current unsaved form values.",
+      "Select Action > Validate.",
+      "Wait for the validation request. A successful response shows the service message and reloads claim details.",
+      "For failure, read the returned rule ResultValue messages, correct the relevant fields, save and validate again."
+    ],
+    "notes": ["Validation calls ValidateClaimDetailsByRuleEngine for the existing claim; it is not NPHIES submission and does not guarantee payer acceptance.", "The visible menu has a status gate but no separate explicit Validate action-permission check on this item. Backend and record-state enforcement can still apply."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:293", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2411"]
+  },
+  {
+    "id": "claims-actions-reject-services",
+    "title": "Reject selected invoice service lines from the claim Action menu",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Reject Services", "Select Reason", "invoice lines", "selected services", "service rejection"],
+    "prerequisites": ["Reject Services is visible only when enableDisableRejectionServiceAction is false and the status helper allows it. Candidate statuses are Error, Reviewed, Pending, Nphies_Perror, Nphies_Error or InternalError, still subject to the parent menu."],
+    "steps": [
+      "Select the intended service/invoice rows using the checkboxes beside their service codes. Refunded rows hide this checkbox, and already rejected rows disable it and are excluded from the request.",
+      "Select the text Action > Reject Services and inspect the invoice numbers shown in the confirmation.",
+      "Choose Yes, Reject it! only if the selected invoices are correct; otherwise cancel.",
+      "In Select Reason, choose an available reviewer rejection reason. The reason selector submits the rejection when a value is accepted.",
+      "Read the success/error message and check the reloaded service details."
+    ],
+    "notes": ["The payload includes the claim, facility, invoice number, line item, service ID and selected rejection reason for each selected non-rejected row.", "The icon inside Reject Services references onManualRejectServiceClick, which is not defined in this component. The surrounding text link has the implemented onRejectServicesAlert handler; do not promise the icon path works.", "The handler does not explicitly reject an empty selection before showing confirmation. Guidance should require selected rows and checking the confirmation.", "This is internal service rejection, not whole-claim cancellation or a response to an external payer denial."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:305", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4044", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4079", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:5165"]
+  },
+  {
+    "id": "claims-actions-refetch-medical",
+    "title": "Refetch Medical Info and understand the overwrite warning",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Refetch Medical Info", "refresh medical records", "overwrite", "encounter", "missing medical"],
+    "prerequisites": ["An existing claim and encounter with an accessible internal Action menu. Confirm that replacing medical records is intended."],
+    "steps": [
+      "Select Action > Refetch Medical Info.",
+      "Read the warning: Medical Records would be overwritten and it will not revert back. Refetch will take few minutes.",
+      "Select Yes, Want to update! only if the overwrite is authorized; otherwise cancel.",
+      "Wait for the request, inspect the service result and review the reloaded claim details."
+    ],
+    "notes": ["This is a data-changing operation using the selected claim's encounter and facility, with IsRefetchMedicalInfo true. It is not a harmless screen refresh.", "Do not promise an undo, preservation of manual medical edits, a precise completion time or successful external retrieval.", "The item itself has no extra per-action permission/editability check in this template, but the menu/state and backend access still apply."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:312", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2610"]
+  },
+  {
+    "id": "claims-actions-status-log",
+    "title": "Use Claim Status Log to inspect technical and medical transitions",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Claim Status Log", "timeline", "technical confirmed", "medical confirmed", "status history"],
+    "prerequisites": ["An accessible internal or NPHIES Action menu for the selected claim."],
+    "steps": [
+      "Choose Action > Claim Status Log.",
+      "Review Claim Id, User Name, Status and Log Date in the modal.",
+      "Use the timestamps and user names to understand returned transitions, then choose Close."
+    ],
+    "notes": ["Technical_Verified and Medical_Verified are labelled Technical Confirmed and Medical Confirmed in this viewer.", "Only the statuses mapped in this template have descriptive labels; other values can render as a dash. A dash does not prove there was no transition.", "This historical log is not a live external status check or the field-by-field Activity Log."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:315", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4898", "cyclus-claim-ui/src/app/components/claim/claim-time-line/claim-time-line.component.html"]
+  },
+  {
+    "id": "claims-actions-submission-status",
+    "title": "View Submission Status and use its nested Actions menu",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "View Submission Status", "Submission Status Log", "Check Status", "Resubmit With Same Bundle", "View Request & Response", "Cancel Claim"],
+    "prerequisites": ["View Submission Status permission, an accessible Action menu and an existing claim."],
+    "steps": [
+      "Select Action > View Submission Status to open Submission Status Log.",
+      "Identify the relevant submission row by Claim Identifier, Claim Bundle Id, Nphies Status and Created On. Hover its status for Remarks when supplied.",
+      "Open that row's Actions menu. Use Check Status for the implemented external status check when available.",
+      "If Check Status returns overall completed and substatus complete, the dialog offers Submit with Same Bundle. A nested Resubmit With Same Bundle action is also shown for eligible claim status IDs; read Resend to Nphies? and confirm Yes, Resend! only when intended.",
+      "Use View Request & Response for that row's payload viewer. Use Cancel Claim only for a row reporting pended, queued or rejected, and read its explicit cancellation confirmation.",
+      "Check the response and refreshed logs; close the modal when finished."
+    ],
+    "notes": ["Check Status and Resubmit With Same Bundle are shown for parent claimStatusId 67, 93, 51, 52 or 99. The direct resubmit menu handler prompts but does not itself enforce the completed/complete check; do not claim every UI path guarantees that precondition.", "The status-check path offers resubmission only on completed/complete. External/backend rules may still reject a request.", "No submission logs found for this claim describes the returned list, not proof no external submission ever occurred.", "View Request & Response uses requestResponse mode, unlike the full Nphies Log viewer. Never paste exchange payloads into AI chat."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4915", "cyclus-claim-ui/src/app/components/claim/claim-submission-status/claim-submission-status.component.html", "cyclus-claim-ui/src/app/components/claim/claim-submission-status/claim-submission-status.component.ts"]
+  },
+  {
+    "id": "claims-actions-cancel",
+    "title": "Cancel Claim from claim details or a submission row",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Cancel Claim", "claim identifier", "Yes Cancel Claim", "No Keep It", "pended", "queued", "rejected"],
+    "prerequisites": ["For the top-level action: Cancel Claim permission and status Nphies_Pended, Nphies_Queued or Nphies_Rejected, subject to the surrounding view/menu visibility. A ClaimIdentifier must exist."],
+    "steps": [
+      "Choose Action > Cancel Claim for the selected claim, or View Submission Status > the intended row's Actions > Cancel Claim when its row status allows cancellation.",
+      "Read Cancel Claim? and verify the displayed claim identifier belongs to the intended submission.",
+      "Choose Yes, Cancel Claim! to request cancellation, or No, Keep It to abandon it.",
+      "Check the service success/error response and refreshed claim/logs before treating cancellation as completed."
+    ],
+    "notes": ["Without a claim identifier the handler stops with an error asking you to ensure the claim has been submitted.", "The internal menu itself hides Nphies_Pended, so its nested cancellation condition alone is insufficient to establish visibility. The NPHIES view or submission-row path may be the applicable path.", "This requests external cancellation, not deleting a local claim, rejecting a service or sending a denial response.", "Do not promise cancellation succeeds solely because the confirmation was accepted."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:321", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:415", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4935", "cyclus-claim-ui/src/app/components/claim/claim-submission-status/claim-submission-status.component.ts"]
+  },
+  {
+    "id": "claims-actions-compress",
+    "title": "Compress a claim and find the returned new claim ID",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Compress", "large claim", "compression", "new claim ID", "clipboard"],
+    "prerequisites": ["The internal Action menu and Large Claim Compression permission. Confirm the operation is appropriate for the selected claim."],
+    "steps": [
+      "Select Action > Compress.",
+      "Read Compress Claim with the selected claim ID and confirm Yes! only when intended, or cancel.",
+      "On success, read the Compressed dialog showing the New Claim Id; the component attempts to copy that ID to the clipboard.",
+      "Check the refreshed worklist/card and use the returned ID to locate the resulting claim as needed.",
+      "If Failed to Compress appears, read its returned Reason and do not assume a new claim was created."
+    ],
+    "notes": ["The visible menu currently gates only on permission within the internal view; the older InternalError/Error and canCompress Large Claim text conditions are commented out. Do not claim those conditions are enforced by the current template.", "This calls a backend compression operation, not a browser ZIP or PDF-size reduction command. The UI reports a new claim ID; do not infer exactly how services or records were transformed without a verified backend result.", "Clipboard availability and a success dialog do not replace checking the resulting record."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:324", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4580", "cyclus-claim-ui/src/app/shared/services/claim.service.ts:1001", "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimController.cs:3229"]
+  },
+  {
+    "id": "claims-actions-external-document",
+    "title": "Download the claim External Document PDF",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "External Document", "External Document Cleared", "download PDF", "No PDF Found", "export"],
+    "prerequisites": ["An accessible Action menu and an external document not already flagged cleared. The internal menu additionally checks ExportPDF permission."],
+    "steps": [
+      "Select Action > External Document.",
+      "For a nonempty returned PDF, the browser download is saved as Downloaded-<claim-id>.pdf.",
+      "If No PDF Found! appears, acknowledge it and verify that the intended claim has an available external document.",
+      "If the item reads External Document Cleared, the download entry has been replaced by a non-actionable cleared indicator."
+    ],
+    "notes": ["The NPHIES menu does not repeat the internal ExportPDF permission check in its template. Do not infer universal visibility from the internal branch alone.", "This is the externally sourced claim document, not the same operation as uploading/downloading a user-added claim attachment.", "A missing PDF does not establish that the claim was never submitted. Do not upload claim PDFs to the AI assistant."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:333", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:425", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4989"]
+  },
+  {
+    "id": "claims-actions-clear-external-documents",
+    "title": "Clear External Documents and understand permanent PDF deletion",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Clear External Documents", "delete external PDF", "permanent", "not retrievable", "attachments"],
+    "prerequisites": ["Delete External PDF permission, an accessible menu, documents not already cleared and a status allowed by clearDocumentRestrictedStatuses."],
+    "steps": [
+      "Confirm the deletion is authorized and distinguish external PDFs from other claim attachments.",
+      "Select Action > Clear External Documents.",
+      "Read the warning that claim external PDF attachments will be deleted and will not be retrievable.",
+      "Select Yes only to proceed with irreversible clearing; select No to keep the documents.",
+      "Check External Documents Cleared! and the refreshed claim. The download entry can change to External Document Cleared."
+    ],
+    "notes": ["The helper excludes ClaimStatusId 9, 11, 8, 93, 67, 71, 103, 127 and 100. Do not guess missing status names or advise bypassing the restriction.", "The request is a single-claim array sent to ClearExternalDocuments. It does not cancel the claim or delete its financial record.", "There is no restore operation offered here. Never describe this as temporary hiding or routine troubleshooting."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:341", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:5016", "cyclus-claim-ui/src/app/shared/services/claim.service.ts:855", "Cyclus.Claim/Zyklus.Claim.API/Controllers/ClaimControllers/ClaimSecondaryController.cs"]
+  },
+  {
+    "id": "claims-actions-denial-response",
+    "title": "Add a claim-level or service-level Denial Response",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Denial Response", "rejected service", "Select Denial Response", "Save changes", "reason code", "resubmission"],
+    "prerequisites": ["NPHIES view, not in the read-only rejected-claim popup, and eligible rejected services with NphiesSeqNo. The claim-level entry is shown for ClaimStatusId 71 or 8."],
+    "steps": [
+      "For a response across eligible rejected lines, select the top Action > Denial Response. For one rejected line, use that service row's Action > Denial Response.",
+      "In Denial Responses, choose Select Denial Response from the returned reason list.",
+      "Enter Remarks as appropriate and optionally attach a PDF or supported image no larger than 5 MB.",
+      "Select Save changes. This invokes AddResponse with the eligible service sequence information, selected reason/remarks and optional file.",
+      "Read the actual response, review the reloaded claim and use Action > View Response Added to inspect saved response records."
+    ],
+    "notes": ["Claim-level selection includes only services whose Status is Nphies_Rejected, NphiesSeqNo is present and ReSubmissionStatus is neither ResponseAdded nor Completed. No eligible services causes a warning and no modal.", "The service-row menu is shown for service Status 71. A reason code is required, and ResponseAdded or Completed entries are rejected by the handler even if the link is visible.", "The denial reason selection is required; Remarks and attachment are optional in the reviewed form. Supported file types include PDF and image MIME types; do not confuse this 5 MB rule with ChatHub's 10 MB limit.", "Saving a response is not proof of payer acceptance or completed resubmission. If no denial responses are configured for the code, do not invent one.", "The source combines reason text and remarks using the literal /n string. Do not promise perfect newline formatting."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:365", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:2275", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4455", "cyclus-claim-ui/src/app/components/claim/nphies-denial-code/nphies-denial-code.component.html", "cyclus-claim-ui/src/app/components/claim/nphies-denial-code/nphies-denial-code.component.ts:177"]
+  },
+  {
+    "id": "claims-actions-error-resolved",
+    "title": "Mark Error Resolved in the NPHIES claim view",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Error Resolved", "NPHIES error", "IsErrorResolved", "save"],
+    "prerequisites": ["The NPHIES Action menu with ClaimStatusId 52. Editing and Save availability still depend on the surrounding view."],
+    "steps": [
+      "Review and correct the reported claim errors using the editable fields permitted by your screen.",
+      "Select Action > Error Resolved.",
+      "Use the main Save control when available to send the updated claim, including the flag, through UpdateClaimDetails. Inspect the service result and refreshed claim."
+    ],
+    "notes": [    "The Error Resolved click only sets claimDetails.IsErrorResolved = true in memory. It does not itself call an API, validate the claim or change the external payer status. The backend claim-update path copies a true flag into the saved claim record; there is no undo toggle on this menu item.", "The NPHIES Save button is hidden in the read-only rejected popup and offered only for the template's listed error/rejection/outcome/cancelled statuses. Do not promise persistence when no Save path is available.", "Do not claim errors were truly fixed merely because the flag was selected."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:372", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:441", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:2160", "Cyclus.Claim/Zyklus.Claim.Repositories/Repositories/ClaimRepository.cs:5319"]
+  },
+  {
+    "id": "claims-actions-nphies-log-viewer",
+    "title": "Use Nphies Log viewer or Submission viewer to inspect exchanges",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "Nphies Log viewer", "Submission viewer", "Claim Json", "Claim Batch", "Communications", "Claim Pool", "Poll Response", "request", "response"],
+    "prerequisites": ["An accessible NPHIES-view Action menu and permission to inspect the claim's sensitive integration data."],
+    "steps": [
+      "Choose Action > Nphies Log viewer in KSA mode, or Action > Submission viewer outside KSA. Both launch the same log-viewer component.",
+      "In full mode, choose Claim Json, Claim Batch, Communications or Claim Pool as needed.",
+      "Within Claim Json, switch between Json and Viewer and between Request and Response.",
+      "Use Download or Copy only within your approved data-handling process. Poll Response, when offered in full mode, invokes a retrieval operation rather than merely changing tabs.",
+      "Close the viewer when finished."
+    ],
+    "notes": ["This displays integration records and potentially sensitive patient/claim data; do not paste raw JSON or downloaded payloads into AI chat.", "View Request & Response from Submission Status Log opens a narrower requestResponse mode, without the full-mode navigation or Poll Response button.", "The menu label differs by KSA mode but the modal title can remain Nphies Log Viewer. Do not invent a separate non-KSA implementation.", "Log contents and poll results are not guaranteed to exist or to prove current payer acceptance."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:392", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4349", "cyclus-claim-ui/src/app/components/claim/nphies-log-viewer/nphies-log-viewer.component.html", "cyclus-claim-ui/src/app/components/claim/nphies-log-viewer/nphies-log-viewer.component.ts"]
+  },
+  {
+    "id": "claims-actions-response-added-log",
+    "title": "Use View Response Added to review resubmission response history",
+    "area": "Claim details actions",
+    "routes": ["/claim/claim-details-list", "/claim/medical-details-list"],
+    "keywords": ["claim details", "View Response Added", "Resubmission Log Viewer", "Added By", "Added On", "response history", "attachment"],
+    "prerequisites": ["An accessible NPHIES Action menu on the selected claim."],
+    "steps": [
+      "Select Action > View Response Added.",
+      "In Resubmission Log Viewer, inspect Claim Id, Added By, Added On, Service Reference Number, Service Code, Remarks and Status.",
+      "Use the attachment download button only where an AttachmentId is present.",
+      "Select Close when finished."
+    ],
+    "notes": ["This is a saved response log, not the Denial Response editor or a fresh payer-status check.", "No returned records or attachment button does not establish that an external response never existed.", "Response remarks and files may contain sensitive information; do not share them with the AI assistant."],
+    "sources": ["cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.html:405", "cyclus-claim-ui/src/app/components/claim/claim-details/claim-details.component.ts:4366", "cyclus-claim-ui/src/app/components/claim/claim-resubmission-log-viewer/claim-resubmission-log-viewer.component.html", "cyclus-claim-ui/src/app/components/claim/claim-resubmission-log-viewer/claim-resubmission-log-viewer.component.ts"]
+  }
+]

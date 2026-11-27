@@ -1,0 +1,189 @@
+@ConsoleApp2.Api_HostAddress = http://localhost:5088
+
+### API liveness only: 200 {"status":"Healthy"}; no database or LLM calls.
+GET {{ConsoleApp2.Api_HostAddress}}/health
+
+### Chat-model probe: no PostgreSQL or embeddings. Calls the configured LLM (may incur cost).
+### 200 with nonempty model text; 503 unavailable/empty; 504 after a 30-second deadline.
+### Use sparingly on a trusted network; this is not database or knowledge-index readiness.
+GET {{ConsoleApp2.Api_HostAddress}}/health/llm
+
+### Index JSON knowledge (Development environment and User Secrets required):
+### dotnet run --project Cyclus.Claim\LLM.Api\LLMChat.Api.csproj -- --index-knowledge
+### Re-run after changing articles or embedding models; all embeddings are regenerated.
+### Search results are nearest neighbors, not necessarily relevant answers.
+POST {{ConsoleApp2.Api_HostAddress}}/knowledge/search
+Content-Type: application/json
+
+{
+  "question": "How do I reset a forgotten password in Cyclus?"
+}
+
+### Test the configured embedding model with non-sensitive text
+POST {{ConsoleApp2.Api_HostAddress}}/embeddings
+Content-Type: application/json
+
+{
+  "text": "How do I reset a forgotten password in Cyclus?"
+}
+
+### Chat uses PostgreSQL vector search for application knowledge; no caller ragContext is required.
+### KnowledgeSearch:MinimumSimilarity defaults to 0.6 and should be tuned against representative questions.
+### The database must be indexed with the configured embedding model before running chat.
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "How do I reset a forgotten password in Cyclus?",
+  "maxOutputTokens": 1000
+}
+
+### Procedural questions use knowledge, not the live claim-status action
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "How do I check claim status in Cyclus?",
+  "availableTools": ["prepare_outlook_email", "get_claim_status"],
+  "maxOutputTokens": 1000
+}
+
+### Unverified procedures must not invent screens or buttons
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "How do I launch a spacecraft in Cyclus?",
+  "maxOutputTokens": 1000
+}
+
+###
+
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "Can you summarize this thread in 3 bullets?",
+  "modelName": "gpt-oss-120b",
+  "systemPrompt": "You are a concise enterprise assistant.",
+  "history": [
+    {
+      "role": "user",
+      "content": "What is our security requirement?"
+    },
+    {
+      "role": "assistant",
+      "content": "Policy v3 requires MFA for all admin users."
+    }
+  ],
+  "ragContext": [
+    "Policy v3 requires MFA for all admin users.",
+    "Support hours are 9 AM to 6 PM GST, Sunday to Thursday."
+  ],
+  "maxOutputTokens": 300,
+  "includeLogProbabilities": false,
+  "topLogProbabilityCount": 0,
+  "stopSequences": [
+    "\n\nEND"
+  ]
+}
+
+###
+
+### Prepare an Outlook draft (requires a model that supports function calling)
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "Help me email alex@example.com. Subject: Tomorrow's meeting. Message: Hi Alex, can we meet tomorrow at 10 AM?",
+  "autoDetectEmailDrafts": true,
+  "maxOutputTokens": 1200
+}
+
+### Sending a selected assistant-written summary must return emailDraft, not copy/paste prose
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "Yes, send it.",
+  "availableTools": ["prepare_outlook_email", "get_claim_status"],
+  "history": [
+    { "role": "user", "content": "Write a quick RCM summary." },
+    { "role": "assistant", "content": "RCM manages eligibility, claims, payments and denials to improve cash flow." },
+    { "role": "user", "content": "Email this summary to alex@example.com with subject hello world." },
+    { "role": "assistant", "content": "I cannot send email directly. I can prepare the summary as an email to alex@example.com with subject hello world." }
+  ],
+  "maxOutputTokens": 1200
+}
+
+### Gather missing email details instead of creating an incomplete action
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "I want to email someone",
+  "autoDetectEmailDrafts": true,
+  "maxOutputTokens": 1200
+}
+
+### An unrelated question does not enable the email tool
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "What is 2 + 2?",
+  "autoDetectEmailDrafts": true,
+  "history": [
+    { "role": "user", "content": "Help me draft an email." },
+    { "role": "assistant", "content": "Who should receive it?" }
+  ],
+  "maxOutputTokens": 1200
+}
+
+### Request a claim status lookup (the trusted Claims backend executes it)
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "What is the status of Claim ID 123?",
+  "availableTools": ["prepare_outlook_email", "get_claim_status"],
+  "maxOutputTokens": 1200
+}
+
+### Ask for a missing Claim ID
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "Check a claim's status",
+  "availableTools": ["get_claim_status"],
+  "maxOutputTokens": 1200
+}
+
+### Continue claim lookup using conversation context
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "123",
+  "history": [
+    { "role": "user", "content": "Check a claim's status" },
+    { "role": "assistant", "content": "Please provide the Claim ID." }
+  ],
+  "availableTools": ["get_claim_status"],
+  "maxOutputTokens": 1200
+}
+
+### A historical permission denial must not prevent a fresh lookup
+POST {{ConsoleApp2.Api_HostAddress}}/chat
+Content-Type: application/json
+
+{
+  "message": "I signed in again, try again",
+  "history": [
+    { "role": "user", "content": "Check Claim ID 4980304" },
+    { "role": "assistant", "content": "You do not have permission to check this claim's status. Sign in again if your session has expired." }
+  ],
+  "availableTools": ["get_claim_status"],
+  "maxOutputTokens": 1200
+}

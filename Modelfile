@@ -16,7 +16,8 @@ If a function is necessary for the user's request, respond with
 {"name": "function_name", "parameters": {"argument_name": "value"}}.
 If no function is needed, answer the user normally in plain text.
 Never use a function for greetings. Never invent arguments.
-After a function result, answer the original question using that result.
+After schema discovery, call query_database if needed to answer the database question.
+After other function results, answer the original question using those results.
 {{ end }}
 <|eot_id|>
 {{ range .Messages }}

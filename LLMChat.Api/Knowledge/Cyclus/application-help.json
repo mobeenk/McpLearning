@@ -1,0 +1,277 @@
+[
+  {
+    "id": "app-feature-overview",
+    "title": "Cyclus Claims application feature overview",
+    "area": "Access and navigation",
+    "routes": ["/home"],
+    "keywords": ["overview", "features", "capabilities", "modules", "getting started", "RCM", "Cyclus", "application"],
+    "prerequisites": ["An account and assigned application menus."],
+    "steps": [
+      "Sign in and use the sidebar for the modules assigned to your account.",
+      "For claim-related work, ask for a specific workflow in Claims, Invoices or Coder Desk.",
+      "For financial work, ask about Payer, Payment, Payment Reconciliation, Reports or the home dashboard.",
+      "For administration, ask about User Management, Rules, Tasks or Workflow Management.",
+      "Use the header for Profile, Logout and Alerts & Notifications, or open the floating Cyclus Chat launcher for colleague or AI conversations.",
+      "Ask a focused how-to question naming the screen and desired action; do not include patient identifiers or credentials."
+    ],
+    "notes": ["This catalog covers the current Claims UI and related workflows, not every separate Cyclus application.", "Module availability and actual sidebar wording come from account menu data. A mounted route is not proof of permission or an enabled integration.", "Guidance is source-code verified only; live claim status requires an authorized application lookup."],
+    "sources": ["cyclus-claim-ui/src/app/app-routing.module.ts", "cyclus-claim-ui/src/app/shared/components/uiLayout/appmenu/appmenu.component.ts", "cyclus-claim-ui/src/app/shared/components/uiLayout/appheader/appheader.component.html", "cyclus-claim-ui/src/app/app.component.html"]
+  },
+  {
+    "id": "app-sign-in",
+    "title": "Sign in to Cyclus Claims",
+    "area": "Access and navigation",
+    "routes": ["/login"],
+    "keywords": ["login", "sign in", "username", "password", "captcha", "security code", "declaration"],
+    "prerequisites": ["An application account provisioned for your organization."],
+    "steps": [
+      "Open the Claims application login screen.",
+      "Enter Username and Password in the login form, then select Login. Pressing Enter in the password field also submits.",
+      "If a Security code challenge appears after unsuccessful attempts, complete the displayed challenge and submit again.",
+      "If a declaration dialog is presented, read Agreement, select Check here to Accept, then select Accept before continuing.",
+      "After successful sign-in, the application opens the requested return screen or home."
+    ],
+    "notes": ["The UI shows the captcha when the server-reported unsuccessful login count exceeds two. An expired or reused captcha may refresh.", "Do not send passwords, captcha answers, OTPs or authentication tokens to the AI assistant.", "Successful access depends on the authentication service and the account configuration; the assistant cannot sign you in."],
+    "sources": ["cyclus-claim-ui/src/app/components/login/login.component.html", "cyclus-claim-ui/src/app/components/login/login.component.ts", "cyclus-claim-ui/src/app/shared/components/letterofdeclarationpopup/letterofdeclarationpopup.component.html"]
+  },
+  {
+    "id": "app-forgot-password",
+    "title": "Reset a forgotten password using the email OTP",
+    "area": "Access and navigation",
+    "routes": ["/forgot-password"],
+    "keywords": ["forgot password", "reset password", "OTP", "email", "new password", "expired"],
+    "prerequisites": ["Know your application Username and have access to its registered email delivery channel."],
+    "steps": [
+      "On the login screen, select Forgot Password?.",
+      "Enter Username and select Submit to request an email OTP.",
+      "When the OTP form appears, enter OTP and New Password.",
+      "Use a new password of 5 to 15 characters containing a lowercase letter, a digit and at least one of these special characters: ! @ # $ % ^ &.",
+      "Select Submit and check the returned success or error notification. Back to Login returns to the login form."
+    ],
+    "notes": ["The UI limits the OTP field to six characters and shows a three-minute countdown. When the countdown ends it leaves OTP entry mode, so request a new OTP as needed.", "The password guidance is based on the current form validator; the authentication service may apply additional checks.", "Never share the OTP or password with the AI assistant. Email delivery and OTP validity must be confirmed by the service."],
+    "sources": ["cyclus-claim-ui/src/app/components/forgot-password/forgot-password.component.html", "cyclus-claim-ui/src/app/components/forgot-password/forgot-password.component.ts"]
+  },
+  {
+    "id": "app-navigation-and-missing-menu",
+    "title": "Find a screen or understand why a menu is missing",
+    "area": "Access and navigation",
+    "routes": ["/home"],
+    "keywords": ["navigation", "menu", "missing menu", "permissions", "screen", "sidebar", "dashboard", "route"],
+    "prerequisites": ["Be signed in to the correct Claims organization and account."],
+    "steps": [
+      "Use Toggle Menu in the header to expand or collapse the navigation sidebar.",
+      "Choose the relevant module and screen from the menus made available to your signed-in account.",
+      "Use the header home icon, labelled Dashboard, to return to /home.",
+      "If a documented screen is absent, give your application administrator the screen name and route and ask them to check the account's menu and organization setup."
+    ],
+    "notes": ["Menus are built from authentication menu data, not from the legacy static menuMaster asset. Exact module/menu labels depend on the assigned data.", "Routes use hash navigation, for example #/home. A route existing in source does not establish that the current user can access it.", "The sidebar deliberately filters out /invoice/b2b-invoice, /payment-reconciliation/reconcile, /workflowmanagement/new-mapping and /invoice/generate-invoice; these are not guaranteed standalone sidebar entries.", "Do not treat a missing menu as evidence that authentication has expired or attempt to bypass access checks."],
+    "sources": ["cyclus-claim-ui/src/app/app-routing.module.ts", "cyclus-claim-ui/src/app/shared/components/uiLayout/appmenu/appmenu.component.ts", "cyclus-claim-ui/src/app/shared/components/uiLayout/appheader/appheader.component.html"]
+  },
+  {
+    "id": "app-session-timeout",
+    "title": "Respond to the session-about-to-expire warning",
+    "area": "Access and navigation",
+    "routes": ["/login", "/home"],
+    "keywords": ["session", "timeout", "idle", "expired", "keyboard", "mouse", "warning", "signed out"],
+    "prerequisites": ["An authenticated session with the application's idle timer running."],
+    "steps": [
+      "If Session about to expire appears, perform a keyboard or mouse action before the displayed countdown ends to interrupt the idle timeout.",
+      "If the application has already logged out, return to Login and sign in again using your account.",
+      "After signing in, check the relevant record before repeating a previously submitted operation; do not assume an interrupted screen action succeeded."
+    ],
+    "notes": ["The current UI starts its warning after 3,600 idle seconds and gives a further 120-second timeout. Authentication services can impose additional expiry behavior.", "The AI cannot inspect the user's current session validity and must not infer it from a historical chat error.", "Do not assume unsaved screen edits survive a forced logout."],
+    "sources": ["cyclus-claim-ui/src/app/app.component.ts", "cyclus-claim-ui/src/app/app.component.html", "cyclus-claim-ui/src/app/shared/services/authentication.service.ts"]
+  },
+  {
+    "id": "app-error-return",
+    "title": "Return from an error screen or report a persistent application issue",
+    "area": "Access and navigation",
+    "routes": ["/error"],
+    "keywords": ["error", "page not found", "404", "return", "support", "problem", "troubleshoot"],
+    "prerequisites": ["The application shows an error screen, unknown route or persistent failed action."],
+    "steps": [
+      "On the application error page, select Return to navigate to /home.",
+      "For an unknown route, return to the application navigation and choose the intended screen rather than relying on an outdated link.",
+      "If the problem persists, report the screen name, action, approximate time and displayed error name/message to your support team. Use the support contact shown by your deployment."
+    ],
+    "notes": ["Do not include passwords, tokens, patient data or raw service payloads in AI questions or support screenshots.", "A page-not-found screen does not establish a permissions problem or that a feature is enabled.", "The assistant cannot recover failed operations or verify service state from the error-page wording alone."],
+    "sources": ["cyclus-claim-ui/src/app/components/error-lander/error-lander.component.html", "cyclus-claim-ui/src/app/components/pagenotfound.component.html", "cyclus-claim-ui/src/app/app-routing.module.ts"]
+  },
+  {
+    "id": "app-profile-and-logout",
+    "title": "Open your profile or log out",
+    "area": "Access and navigation",
+    "routes": ["/usermanagement/update-profile", "/login"],
+    "keywords": ["profile", "my account", "logout", "log out", "sign out", "header"],
+    "prerequisites": ["A signed-in application session."],
+    "steps": ["Open the Hello user-name dropdown in the top header.", "Select Profile to open /usermanagement/update-profile, or select Logout to end the application session."],
+    "notes": ["Profile editing fields and password changes are documented separately with the user-management features.", "The assistant cannot verify the current account's identity or logout status from conversation history."],
+    "sources": ["cyclus-claim-ui/src/app/shared/components/uiLayout/appheader/appheader.component.html", "cyclus-claim-ui/src/app/shared/components/uiLayout/appheader/appheader.component.ts"]
+  },
+  {
+    "id": "app-read-alerts-notifications",
+    "title": "Read, search and follow up on Alerts & Notifications",
+    "area": "Alerts and notifications",
+    "routes": ["/home"],
+    "keywords": ["notification", "alert", "bell", "inbox", "sent", "follow up", "mark as read", "delete"],
+    "prerequisites": ["Be signed in; the alerts service must be available."],
+    "steps": [
+      "Select the header bell to open Alerts & Notifications, then choose Inbox or Sent.",
+      "In Inbox, use Search and Sort by Subject, Received Date or Read; the adjacent arrow changes the sort direction.",
+      "For an unread item, select Mark as read.",
+      "For a read item, use Follow up later and choose a date. The date picker does not allow a date before today.",
+      "When a read item is flagged for follow-up, Mark as followed up records completion. Delete removes an item using the provided action.",
+      "Use pagination to move through items. Select outside the panel or the bell again to close it."
+    ],
+    "notes": ["These are application alerts/notifications, separate from Cyclus Chat conversations and Outlook email.", "Only offer the action visible for the item's read/follow-up state. Do not promise delivery or that an item exists without checking the screen."],
+    "sources": ["cyclus-claim-ui/src/app/shared/components/uiLayout/appheader/appheader.component.html", "cyclus-claim-ui/src/app/shared/components/alerts-and-notifications/alerts-and-notifications.component.html", "cyclus-claim-ui/src/app/shared/components/alerts-and-notifications/alerts-and-notifications.component.ts"]
+  },
+  {
+    "id": "app-send-alert-notification",
+    "title": "Compose an application Alert or Notification",
+    "area": "Alerts and notifications",
+    "routes": ["/home"],
+    "keywords": ["send alert", "new notification", "compose", "recipient", "group", "subject", "message"],
+    "prerequisites": ["Be signed in and have access to the header Alerts & Notifications panel."],
+    "steps": [
+      "Select the header bell and choose New.",
+      "Choose Alert or Notification.",
+      "For Alert, select the intended users/groups in the To selector.",
+      "Enter Subject and the message in the editor.",
+      "Select Send when the form becomes valid and check the service success/error notification.",
+      "Open Sent to review the resulting sent-item list."
+    ],
+    "notes": ["The recipient selector is shown only in Alert mode; do not assume Notification has the same recipient behavior.", "This feature sends an internal application message, not a ChatHub colleague message and not an Outlook email."],
+    "sources": ["cyclus-claim-ui/src/app/shared/components/alerts-and-notifications/alerts-and-notifications.component.html", "cyclus-claim-ui/src/app/shared/components/alerts-and-notifications/alerts-and-notifications.component.ts"]
+  },
+  {
+    "id": "app-chat-colleague",
+    "title": "Start a colleague chat and send a message",
+    "area": "Cyclus Chat",
+    "routes": ["/home"],
+    "keywords": ["chat", "colleague", "direct message", "select a user", "conversation", "send message"],
+    "prerequisites": ["Be signed in and have chat enabled by the deployment. User search is limited to your organization."],
+    "steps": [
+      "Select Open Cyclus Chat, the floating chat launcher available across the authenticated application.",
+      "In Select a user..., search for and select the intended colleague, or select an existing Colleague chats conversation.",
+      "Enter the message and select Send or press Enter. Use Shift + Enter for a new line.",
+      "Watch the chat connection status and any visible error before retrying. Each conversation keeps its own unsent draft when switching chats."
+    ],
+    "notes": ["A selected colleague conversation is persisted only when its first message or attachment is sent.", "The message limit is 4,000 characters. Search results and availability depend on active organization users and server capabilities.", "Closing/minimizing the panel does not stop the root chat service. Chat messages are not Outlook emails or header notifications."],
+    "sources": ["cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.html", "cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.ts", "cyclus-claim-ui/src/app/shared/services/chat.service.ts", "Cyclus.Claim/Zyklus.Setup.Services/Services/ChatService.cs"]
+  },
+  {
+    "id": "app-chat-attachments-history-copy",
+    "title": "Share a chat attachment, load older messages or copy a response",
+    "area": "Cyclus Chat",
+    "routes": ["/home"],
+    "keywords": ["chat", "attachment", "file", "image", "download", "preview", "copy", "history", "older message"],
+    "prerequisites": ["Open a colleague conversation for attachments. AI conversations accept text only."],
+    "steps": [
+      "In a colleague chat, select the paperclip Attach file or image control and choose a supported nonempty file up to 10 MB.",
+      "Check the selected filename above the composer. Use Remove attachment if it is the wrong file, otherwise select Send.",
+      "For received files, select the filename download action. For an unloaded image, select Preview image.",
+      "Use Load older messages when offered to retrieve earlier conversation history.",
+      "Use Copy message on a message to copy its rendered content using the browser clipboard."
+    ],
+    "notes": ["Supported attachment extensions are png, jpg, jpeg, pdf, txt, docx, xlsx and zip. Server-side validation may still reject an invalid file.", "AI chat attachment controls are disabled. The AI does not automatically receive the current screen or patient records.", "Attachment downloads require conversation membership. Clipboard and download behavior depend on browser support and permissions."],
+    "sources": ["cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.html", "cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.ts", "Cyclus.Claim/Zyklus.Setup.Services/Services/ChatService.cs"]
+  },
+  {
+    "id": "app-chat-window-and-hidden",
+    "title": "Resize, move, minimize or hide colleague chats",
+    "area": "Cyclus Chat",
+    "routes": ["/home"],
+    "keywords": ["chat window", "minimize", "maximize", "resize", "move", "hidden chats", "restore", "sidebar", "collapse"],
+    "prerequisites": ["Open Cyclus Chat."],
+    "steps": [
+      "Use Minimize or Close to hide the panel, then select the chat launcher to reopen it.",
+      "Use Maximize / Restore to change the window size. In non-maximized mode, drag the top-left grip to resize or the black title bar to move the window.",
+      "Drag the divider between the conversation list and message pane to resize their relative widths; its left/right arrow keys also resize it.",
+      "Select the AI chats or Colleague chats heading to fold or unfold that section. Drag its handle, or use its up/down arrow keys, to reorder sections.",
+      "For a colleague conversation, select Hide chat with... using the eye-slash action. Use Hidden and Restore chat with... to restore it, or select the colleague again."
+    ],
+    "notes": ["Hiding a colleague conversation does not delete history. Incoming messages restore hidden chats.", "Hidden-chat preferences are per signed-in user in this browser; clearing browser storage resets them. AI chats cannot be hidden this way.", "Manual move/resize is disabled while maximized. New-message counts are shown on the launcher."],
+    "sources": ["cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.html", "cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.ts"]
+  },
+  {
+    "id": "app-ai-chat-create-delete",
+    "title": "Create, continue or delete an independent AI conversation",
+    "area": "Cyclus Chat",
+    "routes": ["/home"],
+    "keywords": ["AI", "assistant", "new AI chat", "five chats", "delete conversation", "separate topic", "chat limit"],
+    "prerequisites": ["Chat and the AI assistant must both be enabled."],
+    "steps": [
+      "Open Cyclus Chat and expand AI chats if it is folded.",
+      "Select New AI chat to start a separate conversation, or select an existing AI topic to continue its saved history.",
+      "Type a text question and select Send. Each AI conversation has independent message history and drafts.",
+      "If five AI conversations already exist, continue one or use its Delete AI conversation trash action and follow the confirmation dialog to free a slot."
+    ],
+    "notes": ["The server enforces a maximum of five AI chats per user. New chat titles come from the first prompt.", "Deleting an AI conversation permanently removes its messages and attachments; this is not the same as hiding a colleague chat.", "AI responses may be inaccurate and should be verified before use. Do not include patient identifiers or other sensitive information in prompts."],
+    "sources": ["cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.html", "cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.ts", "Cyclus.Claim/Zyklus.Setup.Services/Services/ChatService.cs"]
+  },
+  {
+    "id": "app-ai-retry-failure",
+    "title": "Retry a failed AI response without losing the saved question",
+    "area": "Cyclus Chat",
+    "routes": ["/home"],
+    "keywords": ["AI", "failed", "timeout", "retry", "unavailable", "HTTP", "assistant status", "reconnect"],
+    "prerequisites": ["A saved AI request with AssistantStatus Failed, belonging to the signed-in user."],
+    "steps": [
+      "Read the visible error/toast and look for the failed AI request in its conversation.",
+      "Use the Retry request control shown next to your failed request.",
+      "Wait for the response or an explicit failure notification. The original question stays saved.",
+      "For a disconnected chat, allow automatic reconnection and reload of saved history. Report persistent connection or AI-service errors to support without sharing tokens or sensitive message contents."
+    ],
+    "notes": ["Retry is offered only for the current user's failed AI requests, not for successful messages or colleague messages.", "The application distinguishes upstream HTTP failures and timeouts. The assistant cannot diagnose current service availability from past conversation text."],
+    "sources": ["cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.html", "cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.ts", "cyclus-claim-ui/src/app/shared/services/chat.service.ts", "Cyclus.Claim/Zyklus.Setup.Services/Services/ChatService.cs"]
+  },
+  {
+    "id": "app-ai-outlook-email",
+    "title": "Prepare an email and open the draft in Outlook",
+    "area": "Cyclus Chat",
+    "routes": ["/home"],
+    "keywords": ["email", "Outlook", "draft", "send it", "prepare email", "cancel", "buttons", "mailto", "recipient", "subject"],
+    "prerequisites": ["Open an enabled AI conversation. Configure Outlook as the device's default MAILTO email application if Outlook is required."],
+    "steps": [
+      "Ask the assistant to prepare an email and provide one recipient address, a subject and the message. You can ask it to reuse wording discussed in the same conversation.",
+      "Provide any missing details requested by the assistant. The validated draft allows a recipient up to 254 characters, a subject up to 200 characters and a body up to 2000 characters.",
+      "Review the Outlook email draft card, including To, Subject and message.",
+      "Select Open in Outlook and allow the browser's external-app prompt. Review and send the message manually in the email application.",
+      "Select Cancel instead if you do not want to launch the draft. After a launch request, Open again requests another launch."
+    ],
+    "notes": ["Chat never sends or confirms delivery of email. A launch request cannot confirm that Outlook opened.", "The browser uses the default MAILTO handler; it cannot force Outlook if another application is registered.", "Buttons require a validated structured draft. A plain copy/paste response by itself is not a draft card; ask to prepare the email in Outlook and report persistent missing-action responses.", "Opened/Cancelled statuses are retained locally across conversation switches but clear on logout/user change or reload. Cancelling does not delete a draft already opened in Outlook."],
+    "sources": ["cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.html", "cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.ts", "cyclus-claim-ui/src/app/shared/services/chat.service.ts", "Cyclus.Claim/Zyklus.Setup.Services/Services/ChatService.cs"]
+  },
+  {
+    "id": "app-audit-log",
+    "title": "Read an Audit Log dialog and compare old and new values",
+    "area": "Shared record actions",
+    "routes": ["/home"],
+    "keywords": ["audit log", "change history", "old value", "new value", "username", "created on", "copy", "expand"],
+    "prerequisites": ["A screen must expose its Audit Log action and supply audit entries for the selected record."],
+    "steps": [
+      "Use the record's Audit Log action where provided. The shared dialog displays LogId, Old Value, New Value, UserName and CreatedOn.",
+      "Compare Old Value and New Value for each change. Use Expand or Collapse for nested arrays where those controls are shown.",
+      "Use Copy Old Value or Copy New Value if you need to copy the corresponding audit payload within your approved workflow.",
+      "Select Close, the close icon, or the backdrop to dismiss the dialog."
+    ],
+    "notes": ["Audit Log is a shared dialog, not a standalone home screen or a guarantee that every record type has audit history.", "If there are no entries, the dialog says No audit logs found for this record. Do not infer the record has never changed.", "Audit values can contain sensitive data. Do not paste raw audit payloads into the AI assistant."],
+    "sources": ["cyclus-claim-ui/src/app/components/shared/audit-log-modal/audit-log-modal.component.html", "cyclus-claim-ui/src/app/components/shared/audit-log-modal/audit-log-modal.component.ts"]
+  },
+  {
+    "id": "app-ai-live-claim-status",
+    "title": "Ask the AI assistant to check a current claim status",
+    "area": "Cyclus Chat",
+    "routes": ["/home"],
+    "keywords": ["AI", "claim status", "claim ID", "live status", "lookup", "permission", "check claim"],
+    "prerequisites": ["The deployment must enable the get_claim_status integration, and the signed-in account must be authorized for the requested claim."],
+    "steps": [
+      "Open an AI conversation and ask to check the status of an explicit Claim ID.",
+      "Provide the positive whole-number Claim ID if asked. Do not substitute an invoice number or another identifier.",
+      "Read the result returned by the application's authorized claim-status lookup. If the lookup fails, use the displayed retry action when available."
+    ],
+    "notes": ["How-to knowledge does not contain current claim records. The AI must not invent status or treat an earlier response as a fresh lookup.", "An old access-denied message in chat is not proof of current permissions. A new lookup is required to establish the current result.", "Do not include patient identifiers, credentials or other sensitive data in a chat request. The availability of this integration is configuration-dependent."],
+    "sources": ["Cyclus.Claim/Zyklus.Setup.Services/Services/ChatService.cs", "Cyclus.Claim/Zyklus.Setup.API/Infrastructure/Chat/ChatClaimStatusLookup.cs", "cyclus-claim-ui/src/app/shared/components/chat-hub/chat-hub.component.ts"]
+  }
+]

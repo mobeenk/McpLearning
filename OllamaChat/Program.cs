@@ -39,14 +39,16 @@ try
         return;
     }
 
-    using var http = new HttpClient
+    var settings = OllamaSettings.Load(Path.Combine(AppContext.BaseDirectory, "appsettings.json"));
+    var model = options.Model ?? settings.Model;
+    using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = settings.Provider == "Ollama" })
     {
-        BaseAddress = new Uri("http://localhost:11434/"),
-        Timeout = TimeSpan.FromMinutes(5)
+        BaseAddress = settings.Endpoint,
+        Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds)
     };
-    var chat = new OllamaConversation(http, mcp, tools, options.Model);
+    var chat = new OllamaConversation(http, mcp, tools, model, settings);
     await chat.CheckModelAsync(cancellation.Token);
-    Console.WriteLine($"\nModel: {options.Model}. No cloud API or API key is used.");
+    Console.WriteLine($"\nProvider: {settings.Provider}. Model: {model}.");
 
     if (options.Prompt is not null)
     {
@@ -90,15 +92,15 @@ catch (Exception ex) when (ex is HttpRequestException or IOException
     or OperationCanceledException or ModelContextProtocol.McpException)
 {
     Console.Error.WriteLine($"ERROR: {ex.Message}");
-    Console.Error.WriteLine("Check that Ollama is running, the selected model supports tools, and the solution builds.");
+    Console.Error.WriteLine("Check the provider settings, service availability, model tool support, and solution build.");
     Environment.ExitCode = 1;
 }
 
-internal sealed record Options(string Model, string? Prompt, bool SelfTest)
+internal sealed record Options(string? Model, string? Prompt, bool SelfTest)
 {
     public static Options Parse(string[] args)
     {
-        var model = "mcp-learning-llama3.2";
+        string? model = null;
         string? prompt = null;
         var selfTest = false;
         for (var i = 0; i < args.Length; i++)
@@ -118,7 +120,7 @@ internal sealed record Options(string Model, string? Prompt, bool SelfTest)
                     throw new ArgumentException($"Unknown or incomplete option: {args[i]}. Use --model NAME, --prompt TEXT, or --self-test.");
             }
         }
-        if (string.IsNullOrWhiteSpace(model) || (prompt is not null && string.IsNullOrWhiteSpace(prompt)))
+        if ((model is not null && string.IsNullOrWhiteSpace(model)) || (prompt is not null && string.IsNullOrWhiteSpace(prompt)))
             throw new ArgumentException("Model and prompt must not be empty.");
         if (selfTest && prompt is not null)
             throw new ArgumentException("--self-test cannot be combined with --prompt.");
